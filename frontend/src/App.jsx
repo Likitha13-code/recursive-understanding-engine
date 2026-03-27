@@ -13,7 +13,7 @@ const EXAMPLES = [
 ]
 
 export default function App() {
-  const { rootAnswer, isLoadingAnswer, isLoadingConcept, stack, setSuggestedQuery } = useExplorationStore()
+  const { rootAnswer, isLoadingAnswer, isLoadingConcept, stack, setSuggestedQuery, memory, clearMemory } = useExplorationStore()
   const hasContent = rootAnswer || isLoadingAnswer
 
   return (
@@ -110,6 +110,35 @@ export default function App() {
                     </button>
                   ))}
                 </div>
+
+                {/* Memory — recent searches */}
+                {memory.length > 0 && (
+                  <div className="w-full max-w-md">
+                    <div className="flex items-center justify-between mb-2 px-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-600">
+                        Recent searches
+                      </p>
+                      <button onClick={clearMemory}
+                        className="text-[10px] text-slate-700 hover:text-red-400 transition-colors">
+                        Clear
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {memory.map((q, i) => (
+                        <button key={i} onClick={() => setSuggestedQuery(q)}
+                          className="flex items-center gap-2.5 text-left text-xs text-slate-400
+                            bg-white/[0.02] border border-white/6 rounded-xl px-3 py-2
+                            hover:bg-white/[0.06] hover:text-slate-200 hover:border-violet-500/30
+                            transition-all duration-200">
+                          <svg className="w-3 h-3 text-slate-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+                          </svg>
+                          <span className="truncate">{q}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-3 gap-3 mt-2 w-full max-w-md">
                   {[

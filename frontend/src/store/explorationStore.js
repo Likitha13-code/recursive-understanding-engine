@@ -1,42 +1,51 @@
 import { create } from 'zustand'
 
+// Load memory from localStorage
+const loadMemory = () => {
+  try {
+    return JSON.parse(localStorage.getItem('rue_memory') || '[]')
+  } catch {
+    return []
+  }
+}
+
+const saveMemory = (memory) => {
+  localStorage.setItem('rue_memory', JSON.stringify(memory))
+}
+
 const useExplorationStore = create((set, get) => ({
-  // The root query and answer
   rootQuery: '',
   rootAnswer: null,
-
-  // Stack of exploration nodes
-  // Each node: { term, explanation, concepts, depth }
   stack: [],
-
-  // Set of explored term strings
   exploredTerms: new Set(),
-
-  // Loading states
   isLoadingAnswer: false,
   isLoadingConcept: false,
-
-  // Error state
   error: null,
-
-  // For example suggestion buttons
   suggestedQuery: '',
+
+  // Memory — persisted in localStorage
+  memory: loadMemory(),
+
   setSuggestedQuery: (q) => set({ suggestedQuery: q }),
-
-  // Suggested query from example buttons
-  suggestedQuery: '',
-
   setRootQuery: (query) => set({ rootQuery: query }),
-
   setRootAnswer: (answer) => set({ rootAnswer: answer }),
-
   setLoadingAnswer: (val) => set({ isLoadingAnswer: val }),
-
   setLoadingConcept: (val) => set({ isLoadingConcept: val }),
-
   setError: (msg) => set({ error: msg }),
-
   clearError: () => set({ error: null }),
+
+  // Save query to memory
+  saveToMemory: (query) => {
+    const prev = loadMemory().filter((q) => q !== query)
+    const updated = [query, ...prev].slice(0, 8)
+    saveMemory(updated)
+    set({ memory: updated })
+  },
+
+  clearMemory: () => {
+    saveMemory([])
+    set({ memory: [] })
+  },
 
   pushNode: (node) =>
     set((state) => ({

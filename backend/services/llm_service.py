@@ -1,17 +1,19 @@
 import os
 import json
+import base64
 from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-MODEL = "llama-3.3-70b-versatile"
+TEXT_MODEL   = "llama-3.3-70b-versatile"
+VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 
 def _chat(prompt: str, max_tokens: int = 600) -> str:
     response = client.chat.completions.create(
-        model=MODEL,
+        model=TEXT_MODEL,
         max_tokens=max_tokens,
         messages=[{"role": "user", "content": prompt}],
     )
@@ -25,6 +27,37 @@ def generate_answer(question: str) -> str:
         f"Question: {question}",
         max_tokens=600,
     )
+
+
+def generate_answer_with_context(question: str, context: str) -> str:
+    return _chat(
+        f"The user has provided the following document/content:\n\n"
+        f"--- DOCUMENT START ---\n{context[:4000]}\n--- DOCUMENT END ---\n\n"
+        f"Based on this document, answer the following question clearly in 3-5 sentences:\n"
+        f"Question: {question}",
+        max_tokens=600,
+    )
+
+
+def analyze_image(question: str, image_base64: str, mime_type: str) -> str:
+    response = client.chat.completions.create(
+        model=VISION_MODEL,
+        max_tokens=600,
+        messages=[{
+            "role": "user",
+            "content": [
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{mime_type};base64,{image_base64}"},
+                },
+                {
+                    "type": "text",
+                    "text": question or "Describe this image in detail and explain what it shows.",
+                },
+            ],
+        }],
+    )
+    return response.choices[0].message.content.strip()
 
 
 def generate_concept_explanation(term: str, parent_answer: str, exploration_path: list) -> str:
@@ -54,14 +87,12 @@ def extract_concepts(text: str) -> list[dict]:
         max_tokens=400,
     )
 
-    # Strip markdown code fences if model adds them
     if "```" in raw:
         raw = raw.split("```")[1]
         if raw.startswith("json"):
             raw = raw[4:]
         raw = raw.strip()
 
-    # Extract JSON array even if there's surrounding text
     start = raw.find("[")
     end = raw.rfind("]") + 1
     if start != -1 and end > start:
