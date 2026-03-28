@@ -3,6 +3,10 @@ import QueryInput from './components/QueryInput'
 import AnswerPanel from './components/AnswerPanel'
 import BreadcrumbTrail from './components/BreadcrumbTrail'
 import KnowledgeTree from './components/KnowledgeTree'
+import ProgressTracker from './components/ProgressTracker'
+import RelatedQuestions from './components/RelatedQuestions'
+import ExportButton from './components/ExportButton'
+import ShareButton from './components/ShareButton'
 import useExplorationStore from './store/explorationStore'
 import { wakeBackend } from './api'
 import './index.css'
@@ -15,18 +19,37 @@ const EXAMPLES = [
 ]
 
 export default function App() {
-  const { rootAnswer, isLoadingAnswer, isLoadingConcept, stack, setSuggestedQuery, memory, clearMemory } = useExplorationStore()
+  const {
+    rootAnswer, isLoadingAnswer, isLoadingConcept, stack,
+    setSuggestedQuery, memory, clearMemory, theme, toggleTheme,
+  } = useExplorationStore()
   const hasContent = rootAnswer || isLoadingAnswer
 
-  // Wake Render backend on page load to reduce cold start delay
+  // Wake backend on load
   useEffect(() => { wakeBackend() }, [])
 
+  // Apply theme on mount
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
+
+  // Read ?q= from URL and auto-submit
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const q = params.get('q')
+    if (q) setSuggestedQuery(decodeURIComponent(q))
+  }, [setSuggestedQuery])
+
+  const isDark = theme === 'dark'
+
   return (
-    <div className="min-h-screen bg-mesh text-slate-100 flex flex-col">
+    <div className="min-h-screen text-slate-100 flex flex-col" style={{ background: 'var(--bg)' }}>
 
       {/* ── Header ── */}
-      <header className="border-b border-white/5 px-6 py-4 flex items-center justify-between
-        backdrop-blur-sm sticky top-0 z-20 bg-[#07070f]/80">
+      <header className="border-b px-6 py-4 flex items-center justify-between
+        backdrop-blur-sm sticky top-0 z-20"
+        style={{ borderColor: 'var(--border)', background: isDark ? 'rgba(7,7,15,0.85)' : 'rgba(248,247,255,0.85)' }}>
+
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-blue-700
             flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.4)]">
@@ -36,35 +59,65 @@ export default function App() {
             </svg>
           </div>
           <div>
-            <h1 className="text-sm font-semibold text-white leading-none tracking-tight">
+            <h1 className="text-sm font-semibold leading-none tracking-tight" style={{ color: 'var(--text)' }}>
               Recursive Understanding Engine
             </h1>
-            <p className="text-[11px] text-slate-500 mt-0.5">Deep knowledge, layer by layer</p>
+            <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-dim)' }}>Deep knowledge, layer by layer</p>
           </div>
         </div>
-        {stack.length > 0 && (
-          <div className="flex items-center gap-2 text-xs bg-violet-950/50 text-violet-300
-            border border-violet-500/25 px-3 py-1.5 rounded-full animate-fade-up">
-            <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-            {stack.length} level{stack.length > 1 ? 's' : ''} deep
-          </div>
-        )}
+
+        <div className="flex items-center gap-2">
+          {/* Export + Share (only when content exists) */}
+          {rootAnswer && (
+            <>
+              <ExportButton />
+              <ShareButton />
+            </>
+          )}
+
+          {/* Depth badge */}
+          {stack.length > 0 && (
+            <div className="flex items-center gap-2 text-xs bg-violet-950/50 text-violet-300
+              border border-violet-500/25 px-3 py-1.5 rounded-full">
+              <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+              {stack.length} level{stack.length > 1 ? 's' : ''} deep
+            </div>
+          )}
+
+          {/* Theme toggle */}
+          <button onClick={toggleTheme} title="Toggle theme"
+            className="p-2 rounded-xl border transition-all duration-200
+              hover:border-violet-500/40 hover:text-violet-400"
+            style={{ borderColor: 'var(--border)', color: 'var(--text-dim)', background: 'var(--card-bg)' }}>
+            {isDark ? (
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="5"/>
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            )}
+          </button>
+        </div>
       </header>
 
-      {/* ── Body: sidebar | center | balancer ── */}
+      {/* ── Body ── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Left sidebar */}
+        {/* Sidebar */}
         {hasContent ? (
-          <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r border-white/5
-            bg-[#0a0a12] overflow-y-auto p-4">
+          <aside className="hidden lg:flex flex-col w-56 shrink-0 overflow-y-auto p-4 gap-4"
+            style={{ borderRight: `1px solid var(--border)`, background: 'var(--bg3)' }}>
             <KnowledgeTree />
+            <ProgressTracker />
           </aside>
         ) : (
           <div className="hidden lg:block w-56 shrink-0" />
         )}
 
-        {/* ── Center content ── */}
+        {/* Center */}
         <main className="flex-1 overflow-y-auto">
           <div className="w-full max-w-2xl mx-auto px-6 py-10 flex flex-col gap-6">
 
@@ -81,7 +134,10 @@ export default function App() {
 
             <AnswerPanel />
 
-            {/* ── Landing state ── */}
+            {/* Related questions — shown below answer */}
+            {rootAnswer && !isLoadingAnswer && <RelatedQuestions />}
+
+            {/* Landing state */}
             {!hasContent && (
               <div className="flex flex-col items-center text-center gap-6 py-16 animate-fade-up">
                 <div className="relative">
@@ -97,45 +153,45 @@ export default function App() {
                 </div>
 
                 <div className="max-w-sm">
-                  <h2 className="text-2xl font-semibold text-slate-100 mb-2 tracking-tight">Start Exploring</h2>
-                  <p className="text-slate-500 text-sm leading-relaxed">
+                  <h2 className="text-2xl font-semibold mb-2 tracking-tight" style={{ color: 'var(--text)' }}>
+                    Start Exploring
+                  </h2>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                     Ask any question. RUE breaks down the answer into clickable concepts
                     you can explore recursively — until you{' '}
-                    <span className="text-slate-400 font-medium">truly</span> understand.
+                    <span className="font-medium" style={{ color: 'var(--text)' }}>truly</span> understand.
                   </p>
                 </div>
 
                 <div className="flex flex-wrap justify-center gap-2">
                   {EXAMPLES.map((q) => (
                     <button key={q} onClick={() => setSuggestedQuery(q)}
-                      className="text-xs text-slate-400 border border-white/8 rounded-full px-4 py-2
-                        bg-white/[0.02] hover:bg-white/[0.06] hover:text-slate-200
-                        hover:border-violet-500/40 transition-all duration-200">
+                      className="text-xs border rounded-full px-4 py-2 transition-all duration-200
+                        hover:border-violet-500/40 hover:text-violet-400"
+                      style={{ color: 'var(--text-muted)', borderColor: 'var(--border)', background: 'var(--card-bg)' }}>
                       {q}
                     </button>
                   ))}
                 </div>
 
-                {/* Memory — recent searches */}
+                {/* Memory */}
                 {memory.length > 0 && (
                   <div className="w-full max-w-md">
                     <div className="flex items-center justify-between mb-2 px-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-600">
+                      <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>
                         Recent searches
                       </p>
-                      <button onClick={clearMemory}
-                        className="text-[10px] text-slate-700 hover:text-red-400 transition-colors">
-                        Clear
-                      </button>
+                      <button onClick={clearMemory} className="text-[10px] hover:text-red-400 transition-colors"
+                        style={{ color: 'var(--text-dim)' }}>Clear</button>
                     </div>
                     <div className="flex flex-col gap-1.5">
                       {memory.map((q, i) => (
                         <button key={i} onClick={() => setSuggestedQuery(q)}
-                          className="flex items-center gap-2.5 text-left text-xs text-slate-400
-                            bg-white/[0.02] border border-white/6 rounded-xl px-3 py-2
-                            hover:bg-white/[0.06] hover:text-slate-200 hover:border-violet-500/30
-                            transition-all duration-200">
-                          <svg className="w-3 h-3 text-slate-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          className="flex items-center gap-2.5 text-left text-xs border rounded-xl px-3 py-2
+                            hover:border-violet-500/30 transition-all duration-200"
+                          style={{ color: 'var(--text-muted)', borderColor: 'var(--border)', background: 'var(--card-bg)' }}>
+                          <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                            style={{ color: 'var(--text-dim)' }}>
                             <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
                           </svg>
                           <span className="truncate">{q}</span>
@@ -153,20 +209,19 @@ export default function App() {
                   ].map((step) => (
                     <div key={step.title} className="glass rounded-xl p-3 flex flex-col items-center gap-1.5 text-center">
                       <span className="text-lg">{step.icon}</span>
-                      <p className="text-xs font-semibold text-slate-300">{step.title}</p>
-                      <p className="text-[11px] text-slate-600 leading-snug">{step.desc}</p>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--text)' }}>{step.title}</p>
+                      <p className="text-[11px] leading-snug" style={{ color: 'var(--text-dim)' }}>{step.desc}</p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-
           </div>
         </main>
 
-        {/* Right balancer — mirrors sidebar width so mx-auto stays truly centered */}
+        {/* Right balancer */}
         {hasContent ? (
-          <div className="hidden lg:block w-56 shrink-0 border-l border-white/5 bg-[#0a0a12]" />
+          <div className="hidden lg:block w-56 shrink-0" style={{ borderLeft: `1px solid var(--border)`, background: 'var(--bg3)' }} />
         ) : (
           <div className="hidden lg:block w-56 shrink-0" />
         )}

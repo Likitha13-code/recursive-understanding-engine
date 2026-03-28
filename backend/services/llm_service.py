@@ -74,6 +74,25 @@ def generate_concept_explanation(term: str, parent_answer: str, exploration_path
     )
 
 
+def generate_related_questions(question: str, answer: str) -> list[str]:
+    raw = _chat(
+        f"A user asked: '{question}'\n\n"
+        f"They received this answer: '{answer[:800]}'\n\n"
+        f"Generate exactly 3 follow-up questions they might ask next to deepen their understanding.\n"
+        f"Return ONLY a JSON array of 3 strings. No extra text.\n"
+        f"Example: [\"What is X?\", \"How does Y work?\", \"Why is Z important?\"]",
+        max_tokens=200,
+    )
+    start, end = raw.find("["), raw.rfind("]") + 1
+    if start != -1 and end > start:
+        raw = raw[start:end]
+    try:
+        questions = json.loads(raw)
+        return [q for q in questions if isinstance(q, str)][:3]
+    except (json.JSONDecodeError, KeyError):
+        return []
+
+
 def extract_concepts(text: str) -> list[dict]:
     raw = _chat(
         f"From the following explanation, identify exactly 4 to 6 terms that:\n"

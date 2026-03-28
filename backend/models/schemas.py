@@ -27,3 +27,12 @@ class ConceptResponse(BaseModel):
     explanation: str
     concepts: List[ConceptTerm]
     depth_level: int
+
+
+class RelatedRequest(BaseModel):
+    question: str
+    answer: str
+
+
+class RelatedResponse(BaseModel):
+    questions: List[str]
