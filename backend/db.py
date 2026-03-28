@@ -9,5 +9,9 @@ _client = None
 def get_db():
     global _client
     if _client is None:
-        _client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017"))
+        uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+        if "mongodb+srv" in uri:
+            _client = MongoClient(uri, tls=True, tlsAllowInvalidCertificates=True)
+        else:
+            _client = MongoClient(uri)
     return _client["rue_db"]
