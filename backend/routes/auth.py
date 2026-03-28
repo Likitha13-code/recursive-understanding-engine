@@ -93,8 +93,10 @@ class ResetRequest(BaseModel):
 def send_reset_email(to_email: str, reset_link: str):
     gmail_user = os.getenv("GMAIL_USER")
     gmail_pass = os.getenv("GMAIL_APP_PASSWORD")
+    print(f"[email] GMAIL_USER={'set' if gmail_user else 'NOT SET'}, GMAIL_APP_PASSWORD={'set' if gmail_pass else 'NOT SET'}")
     if not gmail_user or not gmail_pass:
-        return  # silently skip if email not configured
+        print("[email] Skipping — credentials not configured")
+        return
     msg = MIMEText(
         f"Hi,\n\nClick the link below to reset your RUE password:\n\n{reset_link}\n\n"
         f"This link expires in 1 hour. If you didn't request this, ignore this email.\n\n— RUE Team"
