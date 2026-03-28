@@ -1,24 +1,43 @@
 import { useState } from 'react'
 import useExplorationStore from '../store/explorationStore'
+import useAuthStore from '../store/authStore'
+import api from '../api'
 
 export default function ShareButton() {
   const [copied, setCopied] = useState(false)
   const { rootQuery, rootAnswer, stack, exploredTerms, understoodTerms, allConceptTerms, graphNodes } = useExplorationStore()
+  const { user } = useAuthStore()
   if (!rootAnswer) return null
 
   const handleShare = async () => {
-    // Encode full session as base64 so recipient sees the exact same chat
-    const session = {
-      rootQuery,
-      rootAnswer,
-      stack,
-      exploredTerms:   [...exploredTerms],
-      understoodTerms: [...understoodTerms],
-      allConceptTerms: [...allConceptTerms],
-      graphNodes,
+    let link
+
+    if (user) {
+      // Logged in: save to DB and share as a clean /share/<id> link
+      try {
+        const sessionData = {
+          rootQuery, rootAnswer, stack,
+          exploredTerms: [...exploredTerms], understoodTerms: [...understoodTerms],
+          allConceptTerms: [...allConceptTerms], graphNodes,
+        }
+        const { data } = await api.post('/api/sessions/save', { query: rootQuery, session_data: sessionData })
+        link = `${window.location.origin}${window.location.pathname}?share=${data.id}`
+      } catch {
+        // Fall back to base64 if API fails
+      }
     }
-    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(session))))
-    const link = `${window.location.origin}${window.location.pathname}#session=${encoded}`
+
+    if (!link) {
+      // Not logged in: encode full session in URL hash
+      const session = {
+        rootQuery, rootAnswer, stack,
+        exploredTerms: [...exploredTerms], understoodTerms: [...understoodTerms],
+        allConceptTerms: [...allConceptTerms], graphNodes,
+      }
+      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(session))))
+      link = `${window.location.origin}${window.location.pathname}#session=${encoded}`
+    }
+
     await navigator.clipboard.writeText(link)
     setCopied(true); setTimeout(() => setCopied(false), 2500)
   }

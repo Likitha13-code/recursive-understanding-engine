@@ -8,7 +8,10 @@ import RelatedQuestions from './components/RelatedQuestions'
 import ExportButton from './components/ExportButton'
 import ShareButton from './components/ShareButton'
 import ConceptGraph from './components/ConceptGraph'
+import AuthModal from './components/AuthModal'
 import useExplorationStore from './store/explorationStore'
+import useAuthStore from './store/authStore'
+import api from './api'
 import { wakeBackend } from './api'
 import './index.css'
 
@@ -25,19 +28,42 @@ export default function App() {
     setSuggestedQuery, memory, clearMemory, theme, toggleTheme,
     reset, restoreSession, loadSessionByQuery,
   } = useExplorationStore()
+  const { user, logout, initAuth } = useAuthStore()
   const hasContent = rootAnswer || isLoadingAnswer
   const [showGraph, setShowGraph] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
+  const [cloudHistory, setCloudHistory] = useState([]) // sessions from DB
 
-  // Wake backend on load
-  useEffect(() => { wakeBackend() }, [])
+  // Wake backend on load + restore auth token in axios
+  useEffect(() => { wakeBackend(); initAuth() }, [])
+
+  // Load cloud session history when user is logged in
+  useEffect(() => {
+    if (!user) { setCloudHistory([]); return }
+    api.get('/api/sessions/list')
+      .then(({ data }) => setCloudHistory(data))
+      .catch(() => {})
+  }, [user])
 
   // Apply theme on mount
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
 
-  // Read ?q= from URL and auto-submit, or #session= hash to restore full chat
+  // Handle URL params: ?share=<id> (DB share), #session=<base64> (hash share), ?q=<query>
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const shareId = params.get('share')
+    if (shareId) {
+      api.get(`/api/sessions/${shareId}`)
+        .then(({ data }) => {
+          restoreSession(data.session_data)
+          window.history.replaceState(null, '', window.location.pathname)
+        })
+        .catch(() => {})
+      return
+    }
+
     const hash = window.location.hash
     if (hash.startsWith('#session=')) {
       try {
@@ -48,7 +74,7 @@ export default function App() {
         return
       } catch {}
     }
-    const params = new URLSearchParams(window.location.search)
+
     const q = params.get('q')
     if (q) setSuggestedQuery(decodeURIComponent(q))
   }, [setSuggestedQuery, restoreSession])
@@ -119,6 +145,34 @@ export default function App() {
               <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
               {stack.length} level{stack.length > 1 ? 's' : ''} deep
             </div>
+          )}
+
+          {/* Login / User button */}
+          {user ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs hidden sm:block" style={{ color: 'var(--text-dim)' }}>{user.email}</span>
+              <button onClick={logout} title="Sign out"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border transition-all duration-200
+                  hover:border-red-500/40 hover:text-red-400"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-dim)', background: 'var(--card-bg)' }}>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setShowAuth(true)} title="Sign in"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border transition-all duration-200
+                hover:border-violet-500/40 hover:text-violet-400"
+              style={{ borderColor: 'var(--border)', color: 'var(--text-dim)', background: 'var(--card-bg)' }}>
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              Sign in
+            </button>
           )}
 
           {/* Theme toggle */}
@@ -211,8 +265,41 @@ export default function App() {
                   ))}
                 </div>
 
-                {/* Memory */}
-                {memory.length > 0 && (
+                {/* Cloud history (logged in) */}
+                {user && cloudHistory.length > 0 && (
+                  <div className="w-full max-w-md">
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                      <svg className="w-3 h-3 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                      </svg>
+                      <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>
+                        Your history
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {cloudHistory.slice(0, 8).map((s) => (
+                        <button key={s.id}
+                          onClick={async () => {
+                            const { data } = await api.get(`/api/sessions/${s.id}`)
+                            restoreSession(data.session_data)
+                          }}
+                          className="flex items-center gap-2.5 text-left text-xs border rounded-xl px-3 py-2
+                            hover:border-violet-500/30 transition-all duration-200"
+                          style={{ color: 'var(--text-muted)', borderColor: 'var(--border)', background: 'var(--card-bg)' }}>
+                          <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                            style={{ color: 'var(--text-dim)' }}>
+                            <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+                          </svg>
+                          <span className="flex-1 truncate">{s.query}</span>
+                          {s.bookmarked && <span className="text-yellow-400 text-[10px]">★</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Local recent searches (not logged in) */}
+                {!user && memory.length > 0 && (
                   <div className="w-full max-w-md">
                     <div className="flex items-center justify-between mb-2 px-1">
                       <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>
@@ -236,6 +323,19 @@ export default function App() {
                       ))}
                     </div>
                   </div>
+                )}
+
+                {/* Sign-in prompt when not logged in */}
+                {!user && (
+                  <button onClick={() => setShowAuth(true)}
+                    className="flex items-center gap-2 text-xs px-4 py-2.5 rounded-xl border transition-all duration-200
+                      hover:border-violet-500/40 hover:text-violet-400"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-dim)', background: 'var(--card-bg)' }}>
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    Sign in to sync history across devices
+                  </button>
                 )}
 
                 <div className="grid grid-cols-3 gap-3 mt-2 w-full max-w-md">
@@ -267,6 +367,9 @@ export default function App() {
 
       {/* Concept Graph Modal */}
       {showGraph && <ConceptGraph onClose={() => setShowGraph(false)} />}
+
+      {/* Auth Modal */}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   )
 }

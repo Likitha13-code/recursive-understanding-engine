@@ -1,4 +1,14 @@
 import { create } from 'zustand'
+import api from '../api'
+
+// ── Sync session to backend (only when logged in) ─────
+const syncToBackend = async (query, sessionData) => {
+  const token = localStorage.getItem('rue_token')
+  if (!token) return
+  try {
+    await api.post('/api/sessions/save', { query, session_data: sessionData })
+  } catch {}
+}
 
 // ── Memory (recent searches list) ─────────────────────
 const loadMemory = () => { try { return JSON.parse(localStorage.getItem('rue_memory') || '[]') } catch { return [] } }
@@ -58,9 +68,14 @@ const useExplorationStore = create((set, get) => ({
     const rootNode = { id: 'root', label: answer.answer?.slice(0, 40) + '…', depth: 0, parentId: null }
     const newState = { rootAnswer: answer, allConceptTerms: terms, graphNodes: [rootNode] }
     set(newState)
-    // Save this session under the current query so it can be restored later
     const full = { ...get(), ...newState }
     saveQuerySession(full.rootQuery, full)
+    syncToBackend(full.rootQuery, {
+      rootQuery: full.rootQuery, rootAnswer: full.rootAnswer,
+      stack: full.stack, exploredTerms: [...full.exploredTerms],
+      allConceptTerms: [...full.allConceptTerms], understoodTerms: [...full.understoodTerms],
+      graphNodes: full.graphNodes,
+    })
   },
 
   setLoadingAnswer:  (val) => set({ isLoadingAnswer: val }),
