@@ -3,13 +3,27 @@ import useExplorationStore from '../store/explorationStore'
 
 export default function ShareButton() {
   const [copied, setCopied] = useState(false)
-  const { rootQuery, rootAnswer } = useExplorationStore()
+  const { rootQuery, rootAnswer, stack } = useExplorationStore()
   if (!rootAnswer) return null
 
   const handleShare = async () => {
-    const url = `${window.location.origin}${window.location.pathname}?q=${encodeURIComponent(rootQuery)}`
-    await navigator.clipboard.writeText(url)
-    setCopied(true); setTimeout(() => setCopied(false), 2000)
+    const lines = [
+      `❓ Question: ${rootQuery}`,
+      '',
+      `💡 Answer: ${rootAnswer.answer}`,
+    ]
+    if (rootAnswer.concepts?.length) {
+      lines.push('', '🔑 Key Concepts:')
+      rootAnswer.concepts.forEach((c) => lines.push(`  • ${c.term} [${c.difficulty}]`))
+    }
+    if (stack.length > 0) {
+      lines.push('', '🔍 Exploration Path:')
+      stack.forEach((n) => lines.push(`  ↳ ${n.term} (depth ${n.depth}): ${n.explanation?.slice(0, 120)}…`))
+    }
+    lines.push('', `🔗 Try it yourself: ${window.location.origin}?q=${encodeURIComponent(rootQuery)}`)
+    lines.push('via Recursive Understanding Engine')
+    await navigator.clipboard.writeText(lines.join('\n'))
+    setCopied(true); setTimeout(() => setCopied(false), 2500)
   }
 
   return (

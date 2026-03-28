@@ -65,6 +65,7 @@ export default function AnswerPanel() {
   const { rootAnswer, stack, isLoadingAnswer, error, markUnderstood } = useExplorationStore()
   const [simplifying, setSimplifying] = useState(false)
   const [simplifiedData, setSimplifiedData] = useState(null) // { explanation, concepts }
+  const [exploreFeedback, setExploreFeedback] = useState(false)
 
   if (isLoadingAnswer) return <SkeletonLoader />
   if (error) return (
@@ -110,7 +111,8 @@ export default function AnswerPanel() {
 
   const handleExploreFurther = () => {
     setSimplifiedData(null)
-    // Just dismiss — user continues exploring terms
+    setExploreFeedback(true)
+    setTimeout(() => setExploreFeedback(false), 2000)
   }
 
   return (
@@ -195,6 +197,11 @@ export default function AnswerPanel() {
           )}
 
           {/* ── "Got it" / "Explore Further" checkpoint ── */}
+          {exploreFeedback && (
+            <div className="text-xs px-3 py-1.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/25 animate-fade-up">
+              Keep exploring — click any concept above to dig deeper!
+            </div>
+          )}
           <div className="flex items-center gap-3 pt-2 w-full justify-center"
             style={{ borderTop: '1px solid var(--divider)', paddingTop: '16px' }}>
             <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
