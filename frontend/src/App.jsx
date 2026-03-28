@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import QueryInput from './components/QueryInput'
 import AnswerPanel from './components/AnswerPanel'
 import BreadcrumbTrail from './components/BreadcrumbTrail'
@@ -16,6 +16,29 @@ import api from './api'
 import { wakeBackend } from './api'
 import './index.css'
 
+// ── Typewriter hook ────────────────────────────────────
+function useTypewriter(text, speed = 38) {
+  const [displayed, setDisplayed] = useState('')
+  useEffect(() => {
+    setDisplayed('')
+    let i = 0
+    const t = setInterval(() => { setDisplayed(text.slice(0, ++i)); if (i >= text.length) clearInterval(t) }, speed)
+    return () => clearInterval(t)
+  }, [text, speed])
+  return displayed
+}
+
+// ── Floating particles ─────────────────────────────────
+const PARTICLES = [
+  { size: 3, left: '15%', delay: '0s',    duration: '6s',  opacity: 0.5 },
+  { size: 2, left: '35%', delay: '1.5s',  duration: '8s',  opacity: 0.35 },
+  { size: 4, left: '55%', delay: '0.8s',  duration: '7s',  opacity: 0.45 },
+  { size: 2, left: '72%', delay: '2.5s',  duration: '9s',  opacity: 0.3 },
+  { size: 3, left: '85%', delay: '1s',    duration: '6.5s',opacity: 0.4 },
+  { size: 2, left: '25%', delay: '3s',    duration: '7.5s',opacity: 0.3 },
+  { size: 3, left: '65%', delay: '0.3s',  duration: '8.5s',opacity: 0.4 },
+]
+
 const EXAMPLES = [
   'What is LIME in AI?',
   'How does HTTPS work?',
@@ -24,6 +47,7 @@ const EXAMPLES = [
 ]
 
 export default function App() {
+  const typed = useTypewriter('Start Exploring')
   const {
     rootAnswer, isLoadingAnswer, isLoadingConcept, stack,
     setSuggestedQuery, memory, clearMemory, theme, toggleTheme,
@@ -241,11 +265,30 @@ export default function App() {
 
             {/* Landing state */}
             {!hasContent && (
-              <div className="flex flex-col items-center text-center gap-6 py-16 animate-fade-up">
-                <div className="relative">
+              <div className="flex flex-col items-center text-center gap-6 py-16 animate-fade-up relative overflow-hidden">
+
+                {/* Animated background blobs */}
+                <div className="blob blob-1" />
+                <div className="blob blob-2" />
+                <div className="blob blob-3" />
+
+                {/* Floating particles */}
+                {PARTICLES.map((p, i) => (
+                  <div key={i} className="particle"
+                    style={{
+                      width: p.size, height: p.size,
+                      left: p.left, bottom: '10%',
+                      background: `rgba(139,92,246,${p.opacity})`,
+                      animationDelay: p.delay,
+                      animationDuration: p.duration,
+                    }} />
+                ))}
+
+                <div className="relative z-10">
                   <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-600/30 to-blue-700/30
                     border border-violet-500/20 flex items-center justify-center
-                    shadow-[0_0_40px_rgba(139,92,246,0.2)]">
+                    shadow-[0_0_40px_rgba(139,92,246,0.3)]"
+                    style={{ animation: 'pulse-glow 3s ease infinite' }}>
                     <svg className="w-9 h-9 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                     </svg>
@@ -254,9 +297,9 @@ export default function App() {
                   <div className="absolute -bottom-1 -left-1 w-2 h-2 rounded-full bg-blue-500/60 border border-blue-400/40" />
                 </div>
 
-                <div className="max-w-sm">
+                <div className="relative z-10 max-w-sm">
                   <h2 className="text-2xl font-semibold mb-2 tracking-tight" style={{ color: 'var(--text)' }}>
-                    Start Exploring
+                    {typed}<span className="animate-pulse text-violet-400">|</span>
                   </h2>
                   <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                     Ask any question. RUE breaks down the answer into clickable concepts
@@ -265,7 +308,7 @@ export default function App() {
                   </p>
                 </div>
 
-                <div className="flex flex-wrap justify-center gap-2">
+                <div className="relative z-10 flex flex-wrap justify-center gap-2">
                   {EXAMPLES.map((q) => (
                     <button key={q} onClick={() => setSuggestedQuery(q)}
                       className="text-xs border rounded-full px-4 py-2 transition-all duration-200
@@ -278,7 +321,7 @@ export default function App() {
 
                 {/* Cloud history (logged in) */}
                 {user && cloudHistory.length > 0 && (
-                  <div className="w-full max-w-md">
+                  <div className="relative z-10 w-full max-w-md">
                     <div className="flex items-center gap-2 mb-2 px-1">
                       <svg className="w-3 h-3 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
@@ -311,7 +354,7 @@ export default function App() {
 
                 {/* Local recent searches (not logged in) */}
                 {!user && memory.length > 0 && (
-                  <div className="w-full max-w-md">
+                  <div className="relative z-10 w-full max-w-md">
                     <div className="flex items-center justify-between mb-2 px-1">
                       <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>
                         Recent searches
@@ -349,7 +392,7 @@ export default function App() {
                   </button>
                 )}
 
-                <div className="grid grid-cols-3 gap-3 mt-2 w-full max-w-md">
+                <div className="relative z-10 grid grid-cols-3 gap-3 mt-2 w-full max-w-md">
                   {[
                     { icon: '❓', title: 'Ask',      desc: 'Type any question' },
                     { icon: '🔍', title: 'Identify', desc: 'Key concepts highlighted' },

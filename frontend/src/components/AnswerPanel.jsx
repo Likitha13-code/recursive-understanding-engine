@@ -145,7 +145,7 @@ export default function AnswerPanel() {
 
   return (
     <div className="animate-fade-up">
-      <div className="glass rounded-2xl overflow-hidden">
+      <div key={base.text?.slice(0, 30)} className="glass rounded-2xl overflow-hidden answer-glow">
 
         {/* Header */}
         <div className="px-6 py-3 flex items-center justify-center relative"
@@ -272,10 +272,10 @@ export default function AnswerPanel() {
                 </div>
               )}
               {fu.answer === null && (
-                <div className="glass rounded-2xl rounded-tl-sm px-5 py-4 flex items-center gap-2"
-                  style={{ color: 'var(--text-dim)' }}>
-                  <div className="w-3 h-3 border border-violet-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm">Thinking…</span>
+                <div className="glass rounded-2xl rounded-tl-sm px-5 py-4 flex items-center gap-2">
+                  <div className="typing-dot" />
+                  <div className="typing-dot" />
+                  <div className="typing-dot" />
                 </div>
               )}
               {fu.answer !== null && (
