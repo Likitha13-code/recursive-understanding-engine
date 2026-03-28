@@ -54,8 +54,9 @@ User marks "Got it" → Exploration ends / "Explore Further" → continues
 |----------------------|-----------------------------------|--------------------------------------------------|
 | **Frontend**         | React.js + TailwindCSS            | Component-based, clean UI, fast rendering        |
 | **Backend**          | FastAPI (Python)                  | Lightweight, async, easy LLM integration         |
-| **LLM**              | Groq API (llama-3.3-70b)          | Fast inference, free tier, structured reasoning  |
+| **LLM**              | Groq API (llama-3.3-70b, fallback: llama-3.1-8b-instant) | Fast inference, rate-limit resilient |
 | **Vision LLM**       | Groq (llama-4-scout-17b)          | Image/PDF analysis                               |
+| **Email**            | Resend API                        | Cloud-compatible transactional email (no SMTP)   |
 | **State Management** | Zustand                           | Track exploration depth, breadcrumb history      |
 | **Database**         | PostgreSQL (Render)               | User auth and session persistence                |
 | **Auth**             | JWT tokens + sha256_crypt         | Secure, stateless authentication                 |
@@ -101,46 +102,67 @@ User marks "Got it" → Exploration ends / "Explore Further" → continues
 - Click the mic button to speak your question
 - Automatically transcribes and **submits** — no need to press Explore
 - Uses Web Speech API (Chrome)
+- Also available inside the **follow-up chat input**
 
 ### 8. File Upload / Image Analysis
 - Attach PDFs, text files, or images as context
 - File shown as an attachment badge — type your question then press Explore
 - PDF text extracted via PyPDF2; images analyzed via Groq vision model
+- Also available inside the **follow-up chat input** (attach a file and ask about it in context)
 
-### 9. Session Persistence
+### 9. Chat Continuation (Follow-up Questions)
+- After any answer, a follow-up chat input appears at the bottom of the answer
+- Ask any number of follow-up questions; the AI stays **scoped to the current topic and explanation**
+- Supports mic input and file/image attachment directly in the follow-up bar
+- Typing indicator shows animated colored dots while the AI is responding
+- Entire follow-up thread is shown inline below the main answer
+
+### 11. Session Persistence
 - Every session auto-saved per query
 - Opening the app always starts fresh (clean home screen)
 - Clicking a recent search **instantly restores** the full saved chat
 
-### 10. User Login & Cloud Sync
+### 12. User Login & Cloud Sync
 - Register/login with email and password
-- Sessions saved to PostgreSQL — accessible from **any device**
-- Share links tied to your account (clean `?share=<id>` URL)
+- Sessions saved to database — accessible from any device
 - History shown as "Your history" on the home screen when logged in
 
-### 11. Share Links
+### 13. Forgot Password
+- "Forgot password?" link on the login modal sends a reset link to your email
+- Email delivered via **Resend API** (works on cloud deployments)
+- Reset link opens a modal in the app; token validated server-side before allowing reset
+
+### 14. Share Links
 - **Logged in:** generates a clean `?share=<id>` link backed by the database
 - **Logged out:** encodes full session as base64 URL hash
 - Anyone opening the link sees the exact same chat restored
 
-### 12. Progress Tracker
-- Comprehension % bar: explored terms / total terms
-- Color-coded: green (≥80%), yellow (≥40%), violet (starting)
+### 15. Progress Tracker
+- Comprehension % bar with **spectrum gradient** (violet → amber → green)
+- Color shifts dynamically as you explore more concepts
+- Glow color on the bar changes at 40% and 80% milestones
 
-### 13. Export Session
+### 16. Export Session
 - Copy to clipboard or download as a `.md` file
 - Includes question, answer, key concepts with difficulty, full exploration path
 
-### 14. Related Questions
+### 17. Related Questions
 - 3 follow-up questions suggested after every answer
 - Click any to instantly start a new exploration
 
-### 15. Dark / Light Mode
+### 18. Dark / Light Mode
 - Toggle in the header — persists across sessions
 - Full CSS variable theming across all components
 
-### 16. Home / Reset Button
+### 19. Home / Reset Button
 - House icon in header — clears current session and returns to landing screen
+
+### 20. Full-Screen Desktop Layout
+- Strict 3-column CSS grid: **260px left | 1fr center | 300px right**
+- 2-row grid: **56px header + 1fr body**
+- Root locked to `100vw × 100vh` with `overflow: hidden` — no page scrollbars
+- Only the center content area scrolls; QueryInput is **pinned to the bottom**
+- Aurora animated background with three blending blobs and depth overlay
 
 ---
 
@@ -229,9 +251,13 @@ Chatbot/
 | POST | `/api/simplify` | Simpler re-explanation of a concept |
 | POST | `/api/related` | 3 follow-up question suggestions |
 | POST | `/api/upload` | Analyze PDF or image file |
+| POST | `/api/followup` | Follow-up question within a topic context |
 | POST | `/api/auth/register` | Create new user account |
 | POST | `/api/auth/login` | Login, receive JWT token |
+| POST | `/api/auth/forgot-password` | Send password reset email via Resend |
+| POST | `/api/auth/reset-password` | Reset password using token from email |
 | GET  | `/api/auth/me` | Get current user info |
+| GET  | `/api/auth/history` | Get logged-in user's search history |
 | POST | `/api/sessions/save` | Save/upsert a session |
 | GET  | `/api/sessions/list` | List user's sessions |
 | GET  | `/api/sessions/{id}` | Get a session by ID (for share links) |
@@ -245,9 +271,11 @@ Chatbot/
 ### Backend (.env)
 ```
 GROQ_API_KEY=your_groq_key
-DATABASE_URL=postgresql://user:pass@host/dbname
-JWT_SECRET=your_secret_key
+DATABASE_URL=postgresql://user:pass@host/dbname   # or omit for SQLite
+SECRET_KEY=your_jwt_secret_key
 JWT_EXPIRE_HOURS=720
+RESEND_API_KEY=your_resend_key
+FRONTEND_URL=https://your-app.netlify.app
 ```
 
 ### Frontend (.env.production)
