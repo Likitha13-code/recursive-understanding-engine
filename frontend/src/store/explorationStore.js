@@ -1,13 +1,16 @@
 import { create } from 'zustand'
 
-// ── Memory (recent searches) ──────────────────────────
+// ── Memory (recent searches list) ─────────────────────
 const loadMemory = () => { try { return JSON.parse(localStorage.getItem('rue_memory') || '[]') } catch { return [] } }
 const saveMemory = (m) => localStorage.setItem('rue_memory', JSON.stringify(m))
 
-// ── Session persistence ───────────────────────────────
-const saveSession = (state) => {
+// ── Per-query saved sessions ───────────────────────────
+// Stored as { [query]: sessionData } — max 8 entries
+const loadSavedSessions = () => { try { return JSON.parse(localStorage.getItem('rue_sessions') || '{}') } catch { return {} } }
+const saveQuerySession = (query, state) => {
   try {
-    localStorage.setItem('rue_session', JSON.stringify({
+    const all = loadSavedSessions()
+    all[query] = {
       rootQuery:       state.rootQuery,
       rootAnswer:      state.rootAnswer,
       stack:           state.stack,
@@ -15,38 +18,30 @@ const saveSession = (state) => {
       allConceptTerms: [...state.allConceptTerms],
       understoodTerms: [...state.understoodTerms],
       graphNodes:      state.graphNodes,
-    }))
-  } catch {}
-}
-
-const loadSession = () => {
-  try {
-    const s = JSON.parse(localStorage.getItem('rue_session') || 'null')
-    if (!s || !s.rootAnswer) return {}
-    return {
-      rootQuery:       s.rootQuery || '',
-      rootAnswer:      s.rootAnswer || null,
-      stack:           s.stack || [],
-      exploredTerms:   new Set(s.exploredTerms || []),
-      allConceptTerms: new Set(s.allConceptTerms || []),
-      understoodTerms: new Set(s.understoodTerms || []),
-      graphNodes:      s.graphNodes || [],
     }
-  } catch { return {} }
+    // Keep only the 8 most recent queries (matching memory limit)
+    const memory = loadMemory()
+    const trimmed = {}
+    memory.forEach((q) => { if (all[q]) trimmed[q] = all[q] })
+    localStorage.setItem('rue_sessions', JSON.stringify(trimmed))
+  } catch {}
 }
 
 const loadTheme = () => localStorage.getItem('rue_theme') || 'dark'
 
-const saved = loadSession()
+const emptyState = {
+  rootQuery:       '',
+  rootAnswer:      null,
+  stack:           [],
+  exploredTerms:   new Set(),
+  allConceptTerms: new Set(),
+  understoodTerms: new Set(),
+  graphNodes:      [],
+}
 
 const useExplorationStore = create((set, get) => ({
-  rootQuery:       saved.rootQuery       || '',
-  rootAnswer:      saved.rootAnswer      || null,
-  stack:           saved.stack           || [],
-  exploredTerms:   saved.exploredTerms   || new Set(),
-  allConceptTerms: saved.allConceptTerms || new Set(),
-  understoodTerms: saved.understoodTerms || new Set(),  // terms user marked "Got it"
-  graphNodes:      saved.graphNodes      || [],         // all nodes ever visited for graph
+  // Always start fresh — no auto-restore of last session
+  ...emptyState,
   isLoadingAnswer:  false,
   isLoadingConcept: false,
   error:            null,
@@ -63,7 +58,9 @@ const useExplorationStore = create((set, get) => ({
     const rootNode = { id: 'root', label: answer.answer?.slice(0, 40) + '…', depth: 0, parentId: null }
     const newState = { rootAnswer: answer, allConceptTerms: terms, graphNodes: [rootNode] }
     set(newState)
-    saveSession({ ...get(), ...newState })
+    // Save this session under the current query so it can be restored later
+    const full = { ...get(), ...newState }
+    saveQuerySession(full.rootQuery, full)
   },
 
   setLoadingAnswer:  (val) => set({ isLoadingAnswer: val }),
@@ -85,7 +82,31 @@ const useExplorationStore = create((set, get) => ({
     set({ memory: updated })
   },
 
-  clearMemory: () => { saveMemory([]); set({ memory: [] }) },
+  clearMemory: () => {
+    saveMemory([])
+    localStorage.removeItem('rue_sessions')
+    set({ memory: [] })
+  },
+
+  // Load a previously saved session by query — used when clicking recent searches
+  loadSessionByQuery: (query) => {
+    try {
+      const all = loadSavedSessions()
+      const s = all[query]
+      if (!s || !s.rootAnswer) return false
+      set({
+        rootQuery:       s.rootQuery || query,
+        rootAnswer:      s.rootAnswer,
+        stack:           s.stack || [],
+        exploredTerms:   new Set(s.exploredTerms || []),
+        allConceptTerms: new Set(s.allConceptTerms || []),
+        understoodTerms: new Set(s.understoodTerms || []),
+        graphNodes:      s.graphNodes || [],
+        isLoadingAnswer: false, isLoadingConcept: false, error: null,
+      })
+      return true
+    } catch { return false }
+  },
 
   // Mark a term as "Got it" and go back one level
   markUnderstood: (term) => {
@@ -94,7 +115,7 @@ const useExplorationStore = create((set, get) => ({
     const newStack = state.stack.length > 0 ? state.stack.slice(0, -1) : state.stack
     const newState = { understoodTerms: newUnderstood, stack: newStack }
     set(newState)
-    saveSession({ ...state, ...newState })
+    saveQuerySession(state.rootQuery, { ...state, ...newState })
   },
 
   pushNode: (node) =>
@@ -109,33 +130,26 @@ const useExplorationStore = create((set, get) => ({
         allConceptTerms: newAll,
         graphNodes: newGraphNodes,
       }
-      set(newState)
-      saveSession({ ...state, ...newState })
+      const full = { ...state, ...newState }
+      saveQuerySession(state.rootQuery, full)
       return newState
     }),
 
   popToDepth: (depth) =>
     set((state) => {
       const newState = { stack: state.stack.slice(0, depth) }
-      set(newState)
-      saveSession({ ...state, ...newState })
+      saveQuerySession(state.rootQuery, { ...state, ...newState })
       return newState
     }),
 
   reset: () => {
-    const newState = {
-      rootQuery: '', rootAnswer: null, stack: [],
-      exploredTerms: new Set(), allConceptTerms: new Set(),
-      understoodTerms: new Set(), graphNodes: [],
-      isLoadingAnswer: false, isLoadingConcept: false, error: null,
-    }
-    set(newState)
-    localStorage.removeItem('rue_session')
+    set({ ...emptyState, isLoadingAnswer: false, isLoadingConcept: false, error: null })
   },
 
+  // Restore a full session from a share link (URL hash)
   restoreSession: (s) => {
     try {
-      const newState = {
+      set({
         rootQuery:       s.rootQuery || '',
         rootAnswer:      s.rootAnswer || null,
         stack:           s.stack || [],
@@ -144,9 +158,7 @@ const useExplorationStore = create((set, get) => ({
         understoodTerms: new Set(s.understoodTerms || []),
         graphNodes:      s.graphNodes || [],
         isLoadingAnswer: false, isLoadingConcept: false, error: null,
-      }
-      set(newState)
-      saveSession(newState)
+      })
     } catch {}
   },
 

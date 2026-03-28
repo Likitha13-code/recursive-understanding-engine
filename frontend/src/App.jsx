@@ -23,7 +23,7 @@ export default function App() {
   const {
     rootAnswer, isLoadingAnswer, isLoadingConcept, stack,
     setSuggestedQuery, memory, clearMemory, theme, toggleTheme,
-    reset, restoreSession,
+    reset, restoreSession, loadSessionByQuery,
   } = useExplorationStore()
   const hasContent = rootAnswer || isLoadingAnswer
   const [showGraph, setShowGraph] = useState(false)
@@ -223,7 +223,7 @@ export default function App() {
                     </div>
                     <div className="flex flex-col gap-1.5">
                       {memory.map((q, i) => (
-                        <button key={i} onClick={() => setSuggestedQuery(q)}
+                        <button key={i} onClick={() => { if (!loadSessionByQuery(q)) setSuggestedQuery(q) }}
                           className="flex items-center gap-2.5 text-left text-xs border rounded-xl px-3 py-2
                             hover:border-violet-500/30 transition-all duration-200"
                           style={{ color: 'var(--text-muted)', borderColor: 'var(--border)', background: 'var(--card-bg)' }}>
