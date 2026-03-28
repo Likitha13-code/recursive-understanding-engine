@@ -133,6 +133,23 @@ const useExplorationStore = create((set, get) => ({
     localStorage.removeItem('rue_session')
   },
 
+  restoreSession: (s) => {
+    try {
+      const newState = {
+        rootQuery:       s.rootQuery || '',
+        rootAnswer:      s.rootAnswer || null,
+        stack:           s.stack || [],
+        exploredTerms:   new Set(s.exploredTerms || []),
+        allConceptTerms: new Set(s.allConceptTerms || []),
+        understoodTerms: new Set(s.understoodTerms || []),
+        graphNodes:      s.graphNodes || [],
+        isLoadingAnswer: false, isLoadingConcept: false, error: null,
+      }
+      set(newState)
+      saveSession(newState)
+    } catch {}
+  },
+
   getProgress: () => {
     const { exploredTerms, allConceptTerms } = get()
     const total = allConceptTerms.size

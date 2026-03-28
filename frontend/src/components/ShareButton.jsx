@@ -3,26 +3,23 @@ import useExplorationStore from '../store/explorationStore'
 
 export default function ShareButton() {
   const [copied, setCopied] = useState(false)
-  const { rootQuery, rootAnswer, stack } = useExplorationStore()
+  const { rootQuery, rootAnswer, stack, exploredTerms, understoodTerms, allConceptTerms, graphNodes } = useExplorationStore()
   if (!rootAnswer) return null
 
   const handleShare = async () => {
-    const lines = [
-      `❓ Question: ${rootQuery}`,
-      '',
-      `💡 Answer: ${rootAnswer.answer}`,
-    ]
-    if (rootAnswer.concepts?.length) {
-      lines.push('', '🔑 Key Concepts:')
-      rootAnswer.concepts.forEach((c) => lines.push(`  • ${c.term} [${c.difficulty}]`))
+    // Encode full session as base64 so recipient sees the exact same chat
+    const session = {
+      rootQuery,
+      rootAnswer,
+      stack,
+      exploredTerms:   [...exploredTerms],
+      understoodTerms: [...understoodTerms],
+      allConceptTerms: [...allConceptTerms],
+      graphNodes,
     }
-    if (stack.length > 0) {
-      lines.push('', '🔍 Exploration Path:')
-      stack.forEach((n) => lines.push(`  ↳ ${n.term} (depth ${n.depth}): ${n.explanation?.slice(0, 120)}…`))
-    }
-    lines.push('', `🔗 Try it yourself: ${window.location.origin}?q=${encodeURIComponent(rootQuery)}`)
-    lines.push('via Recursive Understanding Engine')
-    await navigator.clipboard.writeText(lines.join('\n'))
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(session))))
+    const link = `${window.location.origin}${window.location.pathname}#session=${encoded}`
+    await navigator.clipboard.writeText(link)
     setCopied(true); setTimeout(() => setCopied(false), 2500)
   }
 

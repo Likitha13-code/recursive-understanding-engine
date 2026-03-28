@@ -23,6 +23,7 @@ export default function App() {
   const {
     rootAnswer, isLoadingAnswer, isLoadingConcept, stack,
     setSuggestedQuery, memory, clearMemory, theme, toggleTheme,
+    reset, restoreSession,
   } = useExplorationStore()
   const hasContent = rootAnswer || isLoadingAnswer
   const [showGraph, setShowGraph] = useState(false)
@@ -35,12 +36,22 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
 
-  // Read ?q= from URL and auto-submit
+  // Read ?q= from URL and auto-submit, or #session= hash to restore full chat
   useEffect(() => {
+    const hash = window.location.hash
+    if (hash.startsWith('#session=')) {
+      try {
+        const encoded = hash.slice('#session='.length)
+        const session = JSON.parse(decodeURIComponent(escape(atob(encoded))))
+        restoreSession(session)
+        window.history.replaceState(null, '', window.location.pathname)
+        return
+      } catch {}
+    }
     const params = new URLSearchParams(window.location.search)
     const q = params.get('q')
     if (q) setSuggestedQuery(decodeURIComponent(q))
-  }, [setSuggestedQuery])
+  }, [setSuggestedQuery, restoreSession])
 
   const isDark = theme === 'dark'
 
@@ -69,6 +80,19 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Home / Reset button */}
+          {hasContent && (
+            <button onClick={reset} title="Back to home"
+              className="p-2 rounded-xl border transition-all duration-200
+                hover:border-violet-500/40 hover:text-violet-400"
+              style={{ borderColor: 'var(--border)', color: 'var(--text-dim)', background: 'var(--card-bg)' }}>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+            </button>
+          )}
+
           {/* Export + Share + Graph (only when content exists) */}
           {rootAnswer && (
             <>
