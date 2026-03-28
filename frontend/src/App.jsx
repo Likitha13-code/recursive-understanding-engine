@@ -9,6 +9,7 @@ import ExportButton from './components/ExportButton'
 import ShareButton from './components/ShareButton'
 import ConceptGraph from './components/ConceptGraph'
 import AuthModal from './components/AuthModal'
+import ResetPasswordModal from './components/ResetPasswordModal'
 import useExplorationStore from './store/explorationStore'
 import useAuthStore from './store/authStore'
 import api from './api'
@@ -32,6 +33,7 @@ export default function App() {
   const hasContent = rootAnswer || isLoadingAnswer
   const [showGraph, setShowGraph] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
+  const [resetToken, setResetToken] = useState(null)
   const [cloudHistory, setCloudHistory] = useState([]) // sessions from DB
 
   // Wake backend on load + restore auth token in axios
@@ -50,9 +52,18 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
 
-  // Handle URL params: ?share=<id> (DB share), #session=<base64> (hash share), ?q=<query>
+  // Handle URL params: ?share=<id> (DB share), #session=<base64> (hash share), ?q=<query>, ?token=<reset>
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
+
+    // Password reset token
+    const token = params.get('token')
+    if (token) {
+      setResetToken(token)
+      window.history.replaceState(null, '', window.location.pathname)
+      return
+    }
+
     const shareId = params.get('share')
     if (shareId) {
       api.get(`/api/sessions/${shareId}`)
@@ -370,6 +381,9 @@ export default function App() {
 
       {/* Auth Modal */}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+
+      {/* Reset Password Modal */}
+      {resetToken && <ResetPasswordModal token={resetToken} onClose={() => { setResetToken(null); setShowAuth(true) }} />}
     </div>
   )
 }

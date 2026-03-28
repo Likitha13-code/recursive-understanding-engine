@@ -34,6 +34,14 @@ def init_db():
             updated_at   TEXT NOT NULL
         )
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            token       TEXT PRIMARY KEY,
+            user_id     TEXT NOT NULL,
+            expires_at  TEXT NOT NULL,
+            used        BOOLEAN DEFAULT FALSE
+        )
+    """)
     conn.commit()
     cur.close()
     conn.close()
