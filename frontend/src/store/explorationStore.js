@@ -179,12 +179,25 @@ const useExplorationStore = create((set, get) => ({
   },
 
   addFollowUp: (contextKey, entry) => {
-    set((state) => ({
-      followUpsMap: {
-        ...state.followUpsMap,
-        [contextKey]: [...(state.followUpsMap[contextKey] || []), entry],
-      },
-    }))
+    set((state) => {
+      const existing = state.followUpsMap[contextKey] || []
+      // If entry has no question (it's an answer), replace the last null-answer entry
+      if (entry.question === null) {
+        const idx = [...existing].reverse().findIndex(e => e.answer === null)
+        if (idx !== -1) {
+          const realIdx = existing.length - 1 - idx
+          const updated = [...existing]
+          updated[realIdx] = { ...updated[realIdx], answer: entry.answer, concepts: entry.concepts, isError: entry.isError }
+          return { followUpsMap: { ...state.followUpsMap, [contextKey]: updated } }
+        }
+      }
+      return {
+        followUpsMap: {
+          ...state.followUpsMap,
+          [contextKey]: [...existing, entry],
+        },
+      }
+    })
   },
 
   getProgress: () => {

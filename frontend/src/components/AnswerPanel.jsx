@@ -126,15 +126,21 @@ export default function AnswerPanel() {
     if (!q || followUpLoading) return
     setFollowUpLoading(true)
     setFollowUpInput('')
+    // Show question immediately with loading placeholder
+    addFollowUp(contextKey, { question: q, answer: null, concepts: [] })
     try {
       const { data } = await api.post('/api/followup', {
         question: q,
         context: base.text,
         root_query: rootQuery,
       })
-      addFollowUp(contextKey, { question: q, answer: data.answer, concepts: data.concepts })
-    } catch { /* silently fail */ }
-    finally { setFollowUpLoading(false) }
+      // Replace the placeholder with the real answer
+      addFollowUp(contextKey, { question: null, answer: data.answer, concepts: data.concepts })
+    } catch (err) {
+      addFollowUp(contextKey, { question: null, answer: '⚠️ Could not get a response. Please try again.', concepts: [], isError: true })
+    } finally {
+      setFollowUpLoading(false)
+    }
   }
 
   return (
@@ -254,20 +260,29 @@ export default function AnswerPanel() {
 
       {/* ── Follow-up chat thread ── */}
       {followUps.length > 0 && (
-        <div className="flex flex-col gap-3 mt-3">
+        <div className="flex flex-col gap-2 mt-3">
           {followUps.map((fu, i) => (
-            <div key={i} className="flex flex-col gap-2 animate-fade-up">
-              {/* User question bubble */}
-              <div className="flex justify-end">
-                <div className="max-w-[85%] text-sm px-4 py-2.5 rounded-2xl rounded-br-sm"
-                  style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.25)', color: 'var(--text)' }}>
-                  {fu.question}
+            <div key={i} className="animate-fade-up">
+              {fu.question && (
+                <div className="flex justify-end mb-2">
+                  <div className="max-w-[85%] text-sm px-4 py-2.5 rounded-2xl rounded-br-sm"
+                    style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.25)', color: 'var(--text)' }}>
+                    {fu.question}
+                  </div>
                 </div>
-              </div>
-              {/* AI answer bubble */}
-              <div className="glass rounded-2xl rounded-tl-sm px-5 py-4">
-                <AnswerWithTerms text={fu.answer} concepts={fu.concepts} />
-              </div>
+              )}
+              {fu.answer === null && (
+                <div className="glass rounded-2xl rounded-tl-sm px-5 py-4 flex items-center gap-2"
+                  style={{ color: 'var(--text-dim)' }}>
+                  <div className="w-3 h-3 border border-violet-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm">Thinking…</span>
+                </div>
+              )}
+              {fu.answer !== null && (
+                <div className={`glass rounded-2xl rounded-tl-sm px-5 py-4 ${fu.isError ? 'opacity-60' : ''}`}>
+                  <AnswerWithTerms text={fu.answer} concepts={fu.concepts} />
+                </div>
+              )}
             </div>
           ))}
         </div>
