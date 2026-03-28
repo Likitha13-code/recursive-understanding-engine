@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import QueryInput from './components/QueryInput'
 import AnswerPanel from './components/AnswerPanel'
 import BreadcrumbTrail from './components/BreadcrumbTrail'
@@ -7,6 +7,7 @@ import ProgressTracker from './components/ProgressTracker'
 import RelatedQuestions from './components/RelatedQuestions'
 import ExportButton from './components/ExportButton'
 import ShareButton from './components/ShareButton'
+import ConceptGraph from './components/ConceptGraph'
 import useExplorationStore from './store/explorationStore'
 import { wakeBackend } from './api'
 import './index.css'
@@ -24,6 +25,7 @@ export default function App() {
     setSuggestedQuery, memory, clearMemory, theme, toggleTheme,
   } = useExplorationStore()
   const hasContent = rootAnswer || isLoadingAnswer
+  const [showGraph, setShowGraph] = useState(false)
 
   // Wake backend on load
   useEffect(() => { wakeBackend() }, [])
@@ -67,11 +69,22 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Export + Share (only when content exists) */}
+          {/* Export + Share + Graph (only when content exists) */}
           {rootAnswer && (
             <>
               <ExportButton />
               <ShareButton />
+              {/* Concept Graph toggle */}
+              <button onClick={() => setShowGraph(true)} title="View Concept Graph"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border transition-all duration-200
+                  hover:border-violet-500/40 hover:text-violet-400"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-dim)', background: 'var(--card-bg)' }}>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/>
+                  <path d="M7 12h6m2-5-4 4m4 4-4-4"/>
+                </svg>
+                Graph
+              </button>
             </>
           )}
 
@@ -227,6 +240,9 @@ export default function App() {
         )}
 
       </div>
+
+      {/* Concept Graph Modal */}
+      {showGraph && <ConceptGraph onClose={() => setShowGraph(false)} />}
     </div>
   )
 }

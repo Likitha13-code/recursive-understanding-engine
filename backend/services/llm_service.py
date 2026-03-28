@@ -93,6 +93,17 @@ def generate_related_questions(question: str, answer: str) -> list[str]:
         return []
 
 
+def generate_simpler_explanation(term: str, current_explanation: str, exploration_path: list) -> str:
+    return _chat(
+        f"The following explanation of '{term}' may still be too complex:\n\n"
+        f"\"{current_explanation}\"\n\n"
+        f"Re-explain '{term}' in even simpler terms. Use an analogy or everyday example. "
+        f"Write 2-3 sentences maximum. Avoid all jargon. "
+        f"Imagine explaining to a 12-year-old with no technical background.",
+        max_tokens=300,
+    )
+
+
 def extract_concepts(text: str) -> list[dict]:
     raw = _chat(
         f"From the following explanation, identify exactly 4 to 6 terms that:\n"
@@ -101,9 +112,9 @@ def extract_concepts(text: str) -> list[dict]:
         f"- Are important for grasping the core idea\n"
         f"- Are NOT common English words like 'is', 'the', 'that', 'provides', 'helps'\n\n"
         f"Return ONLY a valid JSON array. No extra text. No markdown. No code blocks.\n"
-        f"Format: [{{\"term\": \"...\", \"reason\": \"...\"}}]\n\n"
+        f"Format: [{{\"term\": \"...\", \"reason\": \"...\", \"difficulty\": \"beginner|intermediate|advanced\"}}]\n\n"
         f"Explanation:\n{text}",
-        max_tokens=400,
+        max_tokens=500,
     )
 
     if "```" in raw:
@@ -120,7 +131,11 @@ def extract_concepts(text: str) -> list[dict]:
     try:
         concepts = json.loads(raw)
         return [
-            {"term": c["term"], "reason": c["reason"]}
+            {
+                "term": c["term"],
+                "reason": c["reason"],
+                "difficulty": c.get("difficulty", "intermediate"),
+            }
             for c in concepts
             if isinstance(c, dict) and "term" in c and "reason" in c
         ]

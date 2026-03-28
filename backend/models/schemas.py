@@ -9,6 +9,7 @@ class QueryRequest(BaseModel):
 class ConceptTerm(BaseModel):
     term: str
     reason: str
+    difficulty: str = "intermediate"  # beginner | intermediate | advanced
 
 
 class AnswerResponse(BaseModel):
@@ -36,3 +37,14 @@ class RelatedRequest(BaseModel):
 
 class RelatedResponse(BaseModel):
     questions: List[str]
+
+
+class SimplifyRequest(BaseModel):
+    term: str
+    current_explanation: str
+    exploration_path: Optional[List[str]] = []
+
+
+class SimplifyResponse(BaseModel):
+    explanation: str
+    concepts: List[ConceptTerm]
