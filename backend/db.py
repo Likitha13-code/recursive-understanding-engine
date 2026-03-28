@@ -1,5 +1,6 @@
 from pymongo import MongoClient
 from dotenv import load_dotenv
+import certifi
 import os
 
 load_dotenv()
@@ -11,7 +12,7 @@ def get_db():
     if _client is None:
         uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
         if "mongodb+srv" in uri:
-            _client = MongoClient(uri, tls=True, tlsAllowInvalidCertificates=True)
+            _client = MongoClient(uri, tlsCAFile=certifi.where())
         else:
             _client = MongoClient(uri)
     return _client["rue_db"]
