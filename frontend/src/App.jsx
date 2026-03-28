@@ -1,8 +1,10 @@
+import { useEffect } from 'react'
 import QueryInput from './components/QueryInput'
 import AnswerPanel from './components/AnswerPanel'
 import BreadcrumbTrail from './components/BreadcrumbTrail'
 import KnowledgeTree from './components/KnowledgeTree'
 import useExplorationStore from './store/explorationStore'
+import { wakeBackend } from './api'
 import './index.css'
 
 const EXAMPLES = [
@@ -15,6 +17,9 @@ const EXAMPLES = [
 export default function App() {
   const { rootAnswer, isLoadingAnswer, isLoadingConcept, stack, setSuggestedQuery, memory, clearMemory } = useExplorationStore()
   const hasContent = rootAnswer || isLoadingAnswer
+
+  // Wake Render backend on page load to reduce cold start delay
+  useEffect(() => { wakeBackend() }, [])
 
   return (
     <div className="min-h-screen bg-mesh text-slate-100 flex flex-col">
