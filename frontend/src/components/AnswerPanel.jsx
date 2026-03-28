@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import useExplorationStore from '../store/explorationStore'
 import TermBadge from './TermBadge'
 import api from '../api'
@@ -69,6 +69,10 @@ export default function AnswerPanel() {
   const [followUpInput, setFollowUpInput] = useState('')
   const [followUpLoading, setFollowUpLoading] = useState(false)
   const [showFloatCheck, setShowFloatCheck] = useState(false)
+  const [isListening, setIsListening] = useState(false)
+  const [attachedFile, setAttachedFile] = useState(null)
+  const fileRef = useRef(null)
+  const recognitionRef = useRef(null)
 
   if (isLoadingAnswer) return <SkeletonLoader />
   if (error) return (
@@ -126,24 +130,47 @@ export default function AnswerPanel() {
   const handleFollowUp = async (e) => {
     e.preventDefault()
     const q = followUpInput.trim()
-    if (!q || followUpLoading) return
+    if ((!q && !attachedFile) || followUpLoading) return
     setFollowUpLoading(true)
     setFollowUpInput('')
-    // Show question immediately with loading placeholder
-    addFollowUp(contextKey, { question: q, answer: null, concepts: [] })
+    const displayQ = attachedFile ? `📄 ${attachedFile.name}${q ? ': ' + q : ''}` : q
+    const fileToSend = attachedFile
+    setAttachedFile(null)
+    addFollowUp(contextKey, { question: displayQ, answer: null, concepts: [] })
     try {
-      const { data } = await api.post('/api/followup', {
-        question: q,
-        context: base.text,
-        root_query: rootQuery,
-      })
-      // Replace the placeholder with the real answer
+      let data
+      if (fileToSend) {
+        const form = new FormData()
+        form.append('file', fileToSend.file)
+        form.append('question', q || 'Summarize this document.')
+        const res = await api.post('/api/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+        data = res.data
+      } else {
+        const res = await api.post('/api/followup', { question: q, context: base.text, root_query: rootQuery })
+        data = res.data
+      }
       addFollowUp(contextKey, { question: null, answer: data.answer, concepts: data.concepts })
-    } catch (err) {
+    } catch {
       addFollowUp(contextKey, { question: null, answer: '⚠️ Could not get a response. Please try again.', concepts: [], isError: true })
     } finally {
       setFollowUpLoading(false)
     }
+  }
+
+  const toggleMic = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) return
+    if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return }
+    const r = new SR()
+    r.lang = 'en-US'; r.interimResults = false
+    r.onresult = (e) => { setFollowUpInput(e.results[0][0].transcript); setIsListening(false) }
+    r.onerror = r.onend = () => setIsListening(false)
+    recognitionRef.current = r; r.start(); setIsListening(true)
+  }
+
+  const attachFile = (file) => {
+    if (!file) return
+    setAttachedFile({ file, name: file.name, type: file.type })
   }
 
   return (
@@ -296,26 +323,74 @@ export default function AnswerPanel() {
       )}
 
       {/* ── Follow-up input ── */}
-      <form onSubmit={handleFollowUp} className="mt-3 flex gap-2 items-center">
-        <input
-          type="text"
-          value={followUpInput}
-          onChange={e => setFollowUpInput(e.target.value)}
-          placeholder="Ask a follow-up question…"
-          className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500/50"
-          style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text)' }}
-        />
-        <button type="submit" disabled={!followUpInput.trim() || followUpLoading}
-          className="shrink-0 flex items-center justify-center w-10 h-10 rounded-xl
-            bg-violet-600 hover:bg-violet-500 disabled:opacity-40 transition-all">
-          {followUpLoading
-            ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-            : <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      <div className="mt-3 rounded-2xl overflow-hidden"
+        style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}>
+
+        {/* File attachment bar */}
+        {attachedFile && (
+          <div className="flex items-center gap-2 px-4 py-2 text-xs"
+            style={{ borderBottom: '1px solid var(--input-border)' }}>
+            <span>{attachedFile.type?.startsWith('image/') ? '🖼️' : '📄'}</span>
+            <span className="flex-1 truncate font-medium" style={{ color: 'var(--text)' }}>{attachedFile.name}</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px]"
+              style={{ background: 'rgba(139,92,246,0.15)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.25)' }}>
+              attached
+            </span>
+            <button type="button" onClick={() => setAttachedFile(null)}
+              className="hover:text-red-400 transition-colors" style={{ color: 'var(--text-dim)' }}>
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
-          }
-        </button>
-      </form>
+            </button>
+          </div>
+        )}
+
+        <form onSubmit={handleFollowUp} className="flex gap-1 items-center px-2 py-1.5">
+          <input
+            type="text"
+            value={followUpInput}
+            onChange={e => setFollowUpInput(e.target.value)}
+            placeholder={attachedFile ? `Ask about ${attachedFile.name}…` : isListening ? 'Listening…' : 'Ask a follow-up question…'}
+            className="flex-1 bg-transparent px-2 py-2 text-sm outline-none"
+            style={{ color: 'var(--text)', caretColor: '#7c3aed' }}
+          />
+
+          {/* Mic button */}
+          <button type="button" onClick={toggleMic}
+            className={`p-2 rounded-xl transition-all duration-200 ${isListening ? 'text-red-400 bg-red-500/15 animate-pulse' : 'hover:bg-violet-500/10 hover:text-violet-400'}`}
+            style={{ color: isListening ? undefined : 'var(--text-dim)' }}
+            title={isListening ? 'Stop listening' : 'Voice input'}>
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
+            </svg>
+          </button>
+
+          {/* File attach button */}
+          <button type="button" onClick={() => fileRef.current?.click()}
+            className="p-2 rounded-xl hover:bg-violet-500/10 transition-all duration-200"
+            style={{ color: attachedFile ? '#7c3aed' : 'var(--text-dim)' }}
+            title="Attach file or image">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+            </svg>
+          </button>
+          <input ref={fileRef} type="file" accept=".pdf,.txt,image/*" className="hidden"
+            onChange={e => { attachFile(e.target.files?.[0]); e.target.value = '' }} />
+
+          {/* Send button */}
+          <button type="submit" disabled={(!followUpInput.trim() && !attachedFile) || followUpLoading}
+            className="shrink-0 flex items-center justify-center w-9 h-9 rounded-xl
+              bg-violet-600 hover:bg-violet-500 disabled:opacity-40 transition-all">
+            {followUpLoading
+              ? <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              : <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+            }
+          </button>
+        </form>
+      </div>
     </div>
   )
 }
