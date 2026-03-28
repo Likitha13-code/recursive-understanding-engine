@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from passlib.context import CryptContext
@@ -103,14 +103,14 @@ def send_reset_email(to_email: str, reset_link: str):
     msg["From"] = gmail_user
     msg["To"] = to_email
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as s:
             s.login(gmail_user, gmail_pass)
             s.sendmail(gmail_user, to_email, msg.as_string())
-    except Exception:
-        pass  # don't crash if email fails
+    except Exception as e:
+        print(f"Email send error: {e}")
 
 @router.post("/auth/forgot-password")
-def forgot_password(body: ForgotRequest):
+def forgot_password(body: ForgotRequest, background_tasks: BackgroundTasks):
     conn = get_db(); cur = conn.cursor()
     cur.execute("SELECT id FROM users WHERE email = %s", (body.email,))
     user = cur.fetchone()
@@ -126,8 +126,8 @@ def forgot_password(body: ForgotRequest):
     )
     conn.commit(); cur.close(); conn.close()
     frontend_url = os.getenv("FRONTEND_URL", "https://recursive-understanding-engine-c0flsmnlo.vercel.app")
-    reset_link = f"{frontend_url}/reset-password?token={token}"
-    send_reset_email(body.email, reset_link)
+    reset_link = f"{frontend_url}?token={token}"
+    background_tasks.add_task(send_reset_email, body.email, reset_link)
     return {"message": "If that email exists, a reset link has been sent."}
 
 @router.post("/auth/reset-password")
