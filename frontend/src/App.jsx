@@ -30,13 +30,14 @@ function useTypewriter(text, speed = 38) {
 
 // ── Floating particles ─────────────────────────────────
 const PARTICLES = [
-  { size: 3, left: '15%', delay: '0s',    duration: '6s',  opacity: 0.5 },
-  { size: 2, left: '35%', delay: '1.5s',  duration: '8s',  opacity: 0.35 },
-  { size: 4, left: '55%', delay: '0.8s',  duration: '7s',  opacity: 0.45 },
-  { size: 2, left: '72%', delay: '2.5s',  duration: '9s',  opacity: 0.3 },
-  { size: 3, left: '85%', delay: '1s',    duration: '6.5s',opacity: 0.4 },
-  { size: 2, left: '25%', delay: '3s',    duration: '7.5s',opacity: 0.3 },
-  { size: 3, left: '65%', delay: '0.3s',  duration: '8.5s',opacity: 0.4 },
+  { size: 4,  left: '10%', delay: '0s',   duration: '7s',  color: 'rgba(139,92,246,0.8)'  },
+  { size: 3,  left: '30%', delay: '1.5s', duration: '9s',  color: 'rgba(59,130,246,0.7)'  },
+  { size: 5,  left: '50%', delay: '0.8s', duration: '6s',  color: 'rgba(236,72,153,0.7)'  },
+  { size: 3,  left: '68%', delay: '2.5s', duration: '8s',  color: 'rgba(6,182,212,0.7)'   },
+  { size: 4,  left: '82%', delay: '1s',   duration: '7.5s',color: 'rgba(139,92,246,0.8)'  },
+  { size: 3,  left: '22%', delay: '3.2s', duration: '8.5s',color: 'rgba(167,139,250,0.7)' },
+  { size: 4,  left: '60%', delay: '0.3s', duration: '9.5s',color: 'rgba(244,114,182,0.7)' },
+  { size: 2,  left: '88%', delay: '2s',   duration: '6.5s',color: 'rgba(96,165,250,0.8)'  },
 ]
 
 const EXAMPLES = [
@@ -265,111 +266,141 @@ export default function App() {
 
             {/* Landing state */}
             {!hasContent && (
-              <div className="flex flex-col items-center text-center gap-6 py-16 animate-fade-up relative overflow-hidden">
+              <div className="flex flex-col items-center text-center gap-8 py-12 animate-fade-up relative overflow-hidden min-h-[80vh] justify-center">
 
-                {/* Animated background blobs */}
+                {/* Aurora blobs */}
                 <div className="blob blob-1" />
                 <div className="blob blob-2" />
                 <div className="blob blob-3" />
+
+                {/* Dot grid */}
+                <div className="dot-grid absolute inset-0 pointer-events-none" />
 
                 {/* Floating particles */}
                 {PARTICLES.map((p, i) => (
                   <div key={i} className="particle"
                     style={{
                       width: p.size, height: p.size,
-                      left: p.left, bottom: '10%',
-                      background: `rgba(139,92,246,${p.opacity})`,
+                      left: p.left, bottom: '5%',
+                      color: p.color,
+                      background: p.color,
                       animationDelay: p.delay,
                       animationDuration: p.duration,
                     }} />
                 ))}
 
-                <div className="relative z-10">
-                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-600/30 to-blue-700/30
-                    border border-violet-500/20 flex items-center justify-center
-                    shadow-[0_0_40px_rgba(139,92,246,0.3)]"
-                    style={{ animation: 'pulse-glow 3s ease infinite' }}>
-                    <svg className="w-9 h-9 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                    </svg>
+                {/* Hero content */}
+                <div className="relative z-10 flex flex-col items-center gap-5">
+                  {/* Glowing icon */}
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-3xl flex items-center justify-center"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(59,130,246,0.2))',
+                        border: '1px solid rgba(139,92,246,0.4)',
+                        boxShadow: '0 0 60px rgba(139,92,246,0.35), inset 0 0 30px rgba(139,92,246,0.1)',
+                        animation: 'pulse-glow 3s ease infinite',
+                      }}>
+                      <svg className="w-11 h-11" viewBox="0 0 24 24" fill="none" stroke="url(#iconGrad)" strokeWidth="1.4">
+                        <defs>
+                          <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#a78bfa"/>
+                            <stop offset="100%" stopColor="#60a5fa"/>
+                          </linearGradient>
+                        </defs>
+                        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                      </svg>
+                    </div>
+                    {/* Orbiting dot */}
+                    <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-violet-500/40 flex items-center justify-center"
+                      style={{ background: 'rgba(139,92,246,0.2)', animation: 'pulse-glow 2s ease infinite' }}>
+                      <div className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+                    </div>
                   </div>
-                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-violet-500/60 border border-violet-400/40" />
-                  <div className="absolute -bottom-1 -left-1 w-2 h-2 rounded-full bg-blue-500/60 border border-blue-400/40" />
+
+                  {/* Animated gradient title */}
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-[0.3em] mb-3 text-violet-400 opacity-80">
+                      Recursive Understanding Engine
+                    </div>
+                    <h1 className="gradient-text text-5xl font-bold tracking-tight leading-tight mb-4">
+                      {typed}<span className="text-violet-400" style={{ WebkitTextFillColor: '#a78bfa', animation: 'none' }}>|</span>
+                    </h1>
+                    <p className="text-base leading-relaxed max-w-md mx-auto" style={{ color: 'var(--text-muted)' }}>
+                      Ask any question. RUE breaks it into clickable concepts you explore
+                      recursively — until you <span className="text-violet-300 font-semibold">truly</span> understand every layer.
+                    </p>
+                  </div>
+
+                  {/* Feature pills */}
+                  <div className="flex flex-wrap justify-center gap-2 mt-1">
+                    {[
+                      { icon: '⚡', label: 'Instant answers' },
+                      { icon: '🔗', label: 'Recursive depth' },
+                      { icon: '🧠', label: 'Concept extraction' },
+                      { icon: '💬', label: 'Follow-up chat' },
+                    ].map(({ icon, label }) => (
+                      <span key={label} className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full font-medium"
+                        style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)', color: '#c4b5fd' }}>
+                        {icon} {label}
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="relative z-10 max-w-sm">
-                  <h2 className="text-2xl font-semibold mb-2 tracking-tight" style={{ color: 'var(--text)' }}>
-                    {typed}<span className="animate-pulse text-violet-400">|</span>
-                  </h2>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                    Ask any question. RUE breaks down the answer into clickable concepts
-                    you can explore recursively — until you{' '}
-                    <span className="font-medium" style={{ color: 'var(--text)' }}>truly</span> understand.
-                  </p>
-                </div>
-
+                {/* Example chips */}
                 <div className="relative z-10 flex flex-wrap justify-center gap-2">
                   {EXAMPLES.map((q) => (
                     <button key={q} onClick={() => setSuggestedQuery(q)}
                       className="text-xs border rounded-full px-4 py-2 transition-all duration-200
-                        hover:border-violet-500/40 hover:text-violet-400"
+                        hover:border-violet-500/60 hover:text-violet-300 hover:-translate-y-0.5
+                        hover:shadow-[0_4px_20px_rgba(139,92,246,0.2)]"
                       style={{ color: 'var(--text-muted)', borderColor: 'var(--border)', background: 'var(--card-bg)' }}>
                       {q}
                     </button>
                   ))}
                 </div>
 
-                {/* Cloud history (logged in) */}
+                {/* History */}
                 {user && cloudHistory.length > 0 && (
                   <div className="relative z-10 w-full max-w-md">
-                    <div className="flex items-center gap-2 mb-2 px-1">
-                      <svg className="w-3 h-3 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                      <svg className="w-3.5 h-3.5 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
                       </svg>
-                      <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>
-                        Your history
-                      </p>
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-violet-400">Your history</p>
                     </div>
                     <div className="flex flex-col gap-1.5">
                       {cloudHistory.slice(0, 8).map((s) => (
                         <button key={s.id}
-                          onClick={async () => {
-                            const { data } = await api.get(`/api/sessions/${s.id}`)
-                            restoreSession(data.session_data)
-                          }}
-                          className="flex items-center gap-2.5 text-left text-xs border rounded-xl px-3 py-2
-                            hover:border-violet-500/30 transition-all duration-200"
+                          onClick={async () => { const { data } = await api.get(`/api/sessions/${s.id}`); restoreSession(data.session_data) }}
+                          className="flex items-center gap-2.5 text-left text-xs border rounded-xl px-3 py-2.5
+                            hover:border-violet-500/40 hover:-translate-y-0.5 transition-all duration-200
+                            hover:shadow-[0_4px_16px_rgba(139,92,246,0.12)]"
                           style={{ color: 'var(--text-muted)', borderColor: 'var(--border)', background: 'var(--card-bg)' }}>
-                          <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                            style={{ color: 'var(--text-dim)' }}>
+                          <svg className="w-3 h-3 shrink-0 text-violet-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
                           </svg>
                           <span className="flex-1 truncate">{s.query}</span>
-                          {s.bookmarked && <span className="text-yellow-400 text-[10px]">★</span>}
+                          {s.bookmarked && <span className="text-yellow-400">★</span>}
                         </button>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Local recent searches (not logged in) */}
                 {!user && memory.length > 0 && (
                   <div className="relative z-10 w-full max-w-md">
-                    <div className="flex items-center justify-between mb-2 px-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>
-                        Recent searches
-                      </p>
-                      <button onClick={clearMemory} className="text-[10px] hover:text-red-400 transition-colors"
-                        style={{ color: 'var(--text-dim)' }}>Clear</button>
+                    <div className="flex items-center justify-between mb-3 px-1">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-violet-400">Recent searches</p>
+                      <button onClick={clearMemory} className="text-[10px] hover:text-red-400 transition-colors" style={{ color: 'var(--text-dim)' }}>Clear</button>
                     </div>
                     <div className="flex flex-col gap-1.5">
                       {memory.map((q, i) => (
                         <button key={i} onClick={() => { if (!loadSessionByQuery(q)) setSuggestedQuery(q) }}
-                          className="flex items-center gap-2.5 text-left text-xs border rounded-xl px-3 py-2
-                            hover:border-violet-500/30 transition-all duration-200"
+                          className="flex items-center gap-2.5 text-left text-xs border rounded-xl px-3 py-2.5
+                            hover:border-violet-500/40 hover:-translate-y-0.5 transition-all duration-200"
                           style={{ color: 'var(--text-muted)', borderColor: 'var(--border)', background: 'var(--card-bg)' }}>
-                          <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                            style={{ color: 'var(--text-dim)' }}>
+                          <svg className="w-3 h-3 shrink-0 text-violet-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
                           </svg>
                           <span className="truncate">{q}</span>
@@ -379,11 +410,11 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Sign-in prompt when not logged in */}
                 {!user && (
                   <button onClick={() => setShowAuth(true)}
-                    className="flex items-center gap-2 text-xs px-4 py-2.5 rounded-xl border transition-all duration-200
-                      hover:border-violet-500/40 hover:text-violet-400"
+                    className="relative z-10 flex items-center gap-2 text-xs px-5 py-2.5 rounded-xl border
+                      hover:border-violet-500/60 hover:text-violet-300 transition-all duration-200
+                      hover:shadow-[0_4px_20px_rgba(139,92,246,0.2)] hover:-translate-y-0.5"
                     style={{ borderColor: 'var(--border)', color: 'var(--text-dim)', background: 'var(--card-bg)' }}>
                     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
@@ -392,16 +423,20 @@ export default function App() {
                   </button>
                 )}
 
-                <div className="relative z-10 grid grid-cols-3 gap-3 mt-2 w-full max-w-md">
+                {/* How it works */}
+                <div className="relative z-10 grid grid-cols-3 gap-3 w-full max-w-md">
                   {[
-                    { icon: '❓', title: 'Ask',      desc: 'Type any question' },
-                    { icon: '🔍', title: 'Identify', desc: 'Key concepts highlighted' },
-                    { icon: '∞',  title: 'Recurse',  desc: 'Explore until you understand' },
+                    { icon: '❓', title: 'Ask',      desc: 'Any question', color: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.3)' },
+                    { icon: '🔍', title: 'Identify', desc: 'Key concepts', color: 'rgba(59,130,246,0.15)',  border: 'rgba(59,130,246,0.3)'  },
+                    { icon: '∞',  title: 'Recurse',  desc: 'Go deep',      color: 'rgba(236,72,153,0.12)',  border: 'rgba(236,72,153,0.3)'  },
                   ].map((step) => (
-                    <div key={step.title} className="glass rounded-xl p-3 flex flex-col items-center gap-1.5 text-center">
-                      <span className="text-lg">{step.icon}</span>
-                      <p className="text-xs font-semibold" style={{ color: 'var(--text)' }}>{step.title}</p>
-                      <p className="text-[11px] leading-snug" style={{ color: 'var(--text-dim)' }}>{step.desc}</p>
+                    <div key={step.title}
+                      className="rounded-xl p-3 flex flex-col items-center gap-1.5 text-center
+                        hover:-translate-y-1 transition-all duration-200 cursor-default"
+                      style={{ background: step.color, border: `1px solid ${step.border}` }}>
+                      <span className="text-xl">{step.icon}</span>
+                      <p className="text-xs font-bold" style={{ color: 'var(--text)' }}>{step.title}</p>
+                      <p className="text-[10px]" style={{ color: 'var(--text-dim)' }}>{step.desc}</p>
                     </div>
                   ))}
                 </div>

@@ -88,8 +88,7 @@ export default function QueryInput() {
   const submitDisabled = isLoadingAnswer || (!input.trim() && !attachedFile)
 
   return (
-    <div
-      className={`rounded-2xl transition-all duration-200 ${isDragging ? 'ring-2 ring-violet-500' : ''}`}
+    <div className={`glow-ring ${isDragging ? 'ring-2 ring-violet-500' : ''}`}
       onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
       onDragLeave={() => setIsDragging(false)}
       onDrop={(e) => { e.preventDefault(); setIsDragging(false); attachFile(e.dataTransfer.files?.[0]) }}
@@ -158,9 +157,10 @@ export default function QueryInput() {
 
           {/* Submit */}
           <button type="submit" disabled={submitDisabled}
-            className="shrink-0 flex items-center gap-2 bg-violet-600 hover:bg-violet-500
+            className="shrink-0 flex items-center gap-2 btn-shimmer
               disabled:opacity-35 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl
-              text-sm font-semibold transition-all duration-200 hover:shadow-[0_0_20px_rgba(139,92,246,0.4)]">
+              text-sm font-semibold transition-all duration-200
+              hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)]">
             {isLoadingAnswer
               ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Thinking…</>
               : <><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Explore</>
