@@ -7,17 +7,26 @@ from dotenv import load_dotenv
 load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-TEXT_MODEL   = "llama-3.3-70b-versatile"
-VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+TEXT_MODEL    = "llama-3.3-70b-versatile"
+FALLBACK_MODEL = "llama-3.1-8b-instant"
+VISION_MODEL  = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 
 def _chat(prompt: str, max_tokens: int = 600) -> str:
-    response = client.chat.completions.create(
-        model=TEXT_MODEL,
-        max_tokens=max_tokens,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return response.choices[0].message.content.strip()
+    for model in [TEXT_MODEL, FALLBACK_MODEL]:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                max_tokens=max_tokens,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            if "rate_limit" in str(e).lower() or "429" in str(e):
+                print(f"[llm] Rate limit on {model}, trying fallback...")
+                continue
+            raise
+    raise Exception("All models rate limited. Please try again later.")
 
 
 def generate_answer(question: str) -> str:
