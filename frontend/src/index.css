@@ -3,6 +3,105 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html, body, #root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── App grid ── */
+.app-grid {
+  position: relative;
+  z-index: 2;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 56px 1fr;
+  grid-template-columns: 260px 1fr 300px;
+}
+.app-header {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 20;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(24px);
+}
+[data-theme="dark"]  .app-header { background: rgba(7,7,15,0.88); }
+[data-theme="light"] .app-header { background: rgba(248,247,255,0.92); }
+
+.app-left {
+  grid-column: 1;
+  grid-row: 2;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+}
+[data-theme="dark"]  .app-left { background: rgba(7,7,15,0.78); }
+[data-theme="light"] .app-left { background: rgba(235,232,255,0.88); }
+
+.app-center {
+  grid-column: 2;
+  grid-row: 2;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(10px);
+}
+[data-theme="dark"]  .app-center { background: rgba(7,7,15,0.45); }
+[data-theme="light"] .app-center { background: rgba(248,247,255,0.55); }
+
+.app-center-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 28px;
+}
+.app-center-input {
+  flex-shrink: 0;
+  padding: 10px 20px 14px;
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(24px);
+}
+[data-theme="dark"]  .app-center-input { background: rgba(7,7,15,0.82); }
+[data-theme="light"] .app-center-input { background: rgba(240,238,255,0.92); }
+
+.app-right {
+  grid-column: 3;
+  grid-row: 2;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+}
+[data-theme="dark"]  .app-right { background: rgba(7,7,15,0.78); }
+[data-theme="light"] .app-right { background: rgba(235,232,255,0.88); }
+
+.sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.sidebar-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 14px 16px 6px;
+}
+
+
 /* ── Dark theme (default) ── */
 :root, [data-theme="dark"] {
   --bg:           #07070f;
