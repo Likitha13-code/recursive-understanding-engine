@@ -10,22 +10,21 @@ export default function BreadcrumbTrail() {
   ]
 
   return (
-    <div className="flex items-center flex-wrap gap-1 text-xs text-slate-500">
+    <div className="flex items-center flex-wrap gap-1 text-xs" style={{ color: 'var(--text-dim)' }}>
       {crumbs.map((crumb, i) => (
         <span key={i} className="flex items-center gap-1">
           {i > 0 && (
-            <svg className="w-3 h-3 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              style={{ color: 'var(--text-dim)' }}>
               <path d="M9 18l6-6-6-6"/>
             </svg>
           )}
           <button
             onClick={() => i < crumbs.length - 1 && popToDepth(crumb.depth)}
-            className={`px-2 py-0.5 rounded-md transition-all duration-150 ${
-              i === crumbs.length - 1
-                ? 'text-violet-400 bg-violet-950/40 border border-violet-500/25 cursor-default font-medium'
-                : 'hover:text-slate-300 hover:bg-white/5 cursor-pointer'
-            }`}
-          >
+            className="px-2 py-0.5 rounded-md transition-all duration-150"
+            style={i === crumbs.length - 1
+              ? { color: '#7c3aed', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', cursor: 'default', fontWeight: 500 }
+              : { color: 'var(--text-muted)', cursor: 'pointer' }}>
             {crumb.label}
           </button>
         </span>
