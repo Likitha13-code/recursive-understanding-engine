@@ -17,15 +17,19 @@ import { wakeBackend } from './api'
 import './index.css'
 
 // ── Typewriter hook ────────────────────────────────────
-function useTypewriter(text, speed = 38) {
+function useTypewriter(text, speed = 55) {
   const [displayed, setDisplayed] = useState('')
+  const [done, setDone] = useState(false)
   useEffect(() => {
-    setDisplayed('')
+    setDisplayed(''); setDone(false)
     let i = 0
-    const t = setInterval(() => { setDisplayed(text.slice(0, ++i)); if (i >= text.length) clearInterval(t) }, speed)
+    const t = setInterval(() => {
+      setDisplayed(text.slice(0, ++i))
+      if (i >= text.length) { clearInterval(t); setTimeout(() => setDone(true), 1200) }
+    }, speed)
     return () => clearInterval(t)
   }, [text, speed])
-  return displayed
+  return { displayed, done }
 }
 
 // ── Floating particles ─────────────────────────────────
@@ -48,12 +52,13 @@ const EXAMPLES = [
 ]
 
 export default function App() {
-  const typed = useTypewriter('Start Exploring')
+  const { displayed: typed, done: typingDone } = useTypewriter('Ask any question.')
   const {
     rootAnswer, isLoadingAnswer, isLoadingConcept, stack,
     setSuggestedQuery, memory, clearMemory, theme, toggleTheme,
     reset, restoreSession, loadSessionByQuery,
   } = useExplorationStore()
+  const depthLevel = stack.length
   const { user, logout, initAuth } = useAuthStore()
   const hasContent = rootAnswer || isLoadingAnswer
   const [showGraph, setShowGraph] = useState(false)
@@ -119,6 +124,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen text-slate-100 flex flex-col" style={{ background: 'var(--bg)' }}>
+
+      {/* ── Depth-level background darkening overlay ── */}
+      <div className="fixed inset-0 pointer-events-none z-[1] transition-all duration-1000"
+        style={{ background: `rgba(0,0,0,${Math.min(depthLevel * 0.045, 0.22)})` }} />
 
       {/* ── Header ── */}
       <header className="border-b px-6 py-4 flex items-center justify-between
@@ -253,9 +262,13 @@ export default function App() {
             {rootAnswer && <BreadcrumbTrail />}
 
             {isLoadingConcept && (
-              <div className="flex items-center justify-center gap-2.5 text-xs text-slate-500 animate-fade-up">
-                <div className="w-3 h-3 border border-violet-500 border-t-transparent rounded-full animate-spin" />
-                Fetching explanation…
+              <div className="flex items-center justify-center animate-fade-up">
+                <div className="flex items-center gap-2 px-5 py-3 rounded-2xl"
+                  style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)' }}>
+                  <div className="typing-dot" />
+                  <div className="typing-dot" />
+                  <div className="typing-dot" />
+                </div>
               </div>
             )}
 
@@ -319,15 +332,24 @@ export default function App() {
 
                   {/* Animated gradient title */}
                   <div>
-                    <div className="text-[11px] font-bold uppercase tracking-[0.3em] mb-3 text-violet-400 opacity-80">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.3em] mb-4 text-violet-400 opacity-80">
                       Recursive Understanding Engine
                     </div>
-                    <h1 className="gradient-text text-5xl font-bold tracking-tight leading-tight mb-4">
-                      {typed}<span className="text-violet-400" style={{ WebkitTextFillColor: '#a78bfa', animation: 'none' }}>|</span>
+                    <h1 className="gradient-text text-5xl font-bold tracking-tight leading-tight mb-5 min-h-[1.2em]">
+                      {typed}
+                      {!typingDone && (
+                        <span style={{ WebkitTextFillColor: '#c4b5fd', animation: 'none' }}
+                          className="animate-pulse">|</span>
+                      )}
                     </h1>
-                    <p className="text-base leading-relaxed max-w-md mx-auto" style={{ color: 'var(--text-muted)' }}>
-                      Ask any question. RUE breaks it into clickable concepts you explore
-                      recursively — until you <span className="text-violet-300 font-semibold">truly</span> understand every layer.
+                    {typingDone && (
+                      <p className="subtitle-reveal text-lg font-medium mb-3" style={{ color: '#c4b5fd' }}>
+                        Understand every layer of it.
+                      </p>
+                    )}
+                    <p className="text-sm leading-relaxed max-w-md mx-auto mt-2" style={{ color: 'var(--text-muted)' }}>
+                      RUE breaks every answer into clickable concepts you explore
+                      recursively — going as deep as you need to truly understand.
                     </p>
                   </div>
 

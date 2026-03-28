@@ -68,6 +68,7 @@ export default function AnswerPanel() {
   const [exploreFeedback, setExploreFeedback] = useState(false)
   const [followUpInput, setFollowUpInput] = useState('')
   const [followUpLoading, setFollowUpLoading] = useState(false)
+  const [showFloatCheck, setShowFloatCheck] = useState(false)
 
   if (isLoadingAnswer) return <SkeletonLoader />
   if (error) return (
@@ -108,6 +109,8 @@ export default function AnswerPanel() {
 
   const handleGotIt = () => {
     setSimplifiedData(null)
+    setShowFloatCheck(true)
+    setTimeout(() => setShowFloatCheck(false), 950)
     if (current) markUnderstood(current.term)
   }
 
@@ -230,15 +233,19 @@ export default function AnswerPanel() {
               Keep exploring — click any concept above to dig deeper!
             </div>
           )}
-          <div className="flex items-center gap-3 pt-2 w-full justify-center"
+          <div className="flex items-center gap-3 pt-2 w-full justify-center relative"
             style={{ borderTop: '1px solid var(--divider)', paddingTop: '16px' }}>
+            {showFloatCheck && (
+              <span className="float-check" style={{ left: '50%', transform: 'translateX(-50%)', bottom: '10px' }}>✓</span>
+            )}
             <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
               Do you understand this{current ? ` concept` : ` answer`}?
             </p>
             <button onClick={handleGotIt}
-              className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-xl font-semibold
+              className={`flex items-center gap-1.5 text-xs px-4 py-2 rounded-xl font-semibold
                 bg-emerald-500/10 border border-emerald-500/30 text-emerald-500
-                hover:bg-emerald-500/20 transition-all duration-200">
+                hover:bg-emerald-500/20 transition-all duration-200
+                ${showFloatCheck ? 'badge-bounce' : ''}`}>
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>

@@ -229,13 +229,53 @@ body {
   box-shadow: 0 0 6px 2px currentColor;
 }
 
-/* ── Answer card glow on load ── */
+/* ── Answer card: 3 glow pulses then settle ── */
 @keyframes answerGlow {
-  0%   { box-shadow: 0 0 0 0 rgba(139,92,246,0); }
-  30%  { box-shadow: 0 0 60px 15px rgba(139,92,246,0.22), 0 0 120px 30px rgba(139,92,246,0.08); }
-  100% { box-shadow: 0 0 20px 4px rgba(139,92,246,0.08); }
+  0%   { box-shadow: 0 0 0 0 rgba(139,92,246,0);    border-color: var(--card-border); }
+  12%  { box-shadow: 0 0 50px 14px rgba(139,92,246,0.28); border-color: rgba(139,92,246,0.5); }
+  25%  { box-shadow: 0 0 8px 2px rgba(139,92,246,0.06);  border-color: var(--card-border); }
+  40%  { box-shadow: 0 0 45px 12px rgba(139,92,246,0.22); border-color: rgba(139,92,246,0.4); }
+  55%  { box-shadow: 0 0 8px 2px rgba(139,92,246,0.05);  border-color: var(--card-border); }
+  70%  { box-shadow: 0 0 35px 10px rgba(139,92,246,0.16); border-color: rgba(139,92,246,0.3); }
+  100% { box-shadow: 0 0 18px 4px rgba(139,92,246,0.09); border-color: rgba(139,92,246,0.18); }
 }
-.answer-glow { animation: answerGlow 2s ease forwards; }
+.answer-glow {
+  animation: answerGlow 3.5s ease forwards;
+}
+
+/* ── Floating ✓ checkmark ── */
+@keyframes floatCheck {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  25%  { opacity: 1; transform: translateY(-18px) scale(1.4); }
+  100% { opacity: 0; transform: translateY(-80px) scale(0.9); }
+}
+.float-check {
+  position: absolute;
+  pointer-events: none;
+  font-size: 28px;
+  font-weight: 700;
+  color: #10b981;
+  text-shadow: 0 0 20px rgba(16,185,129,0.8);
+  animation: floatCheck 0.9s ease-out forwards;
+  z-index: 50;
+}
+
+/* ── Badge bounce when understood ── */
+@keyframes badgeBounce {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.3); }
+  55%  { transform: scale(0.9); }
+  78%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+.badge-bounce { animation: badgeBounce 0.5s ease forwards; }
+
+/* ── Subtitle fade-in after typewriter ── */
+@keyframes subtitleReveal {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.subtitle-reveal { animation: subtitleReveal 0.8s ease forwards; }
 
 /* ── Card hover lift ── */
 .card-hover {
