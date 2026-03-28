@@ -240,7 +240,7 @@ export default function App() {
       </header>
 
       {/* ── Body ── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1" style={{ minHeight: 0 }}>
 
         {/* Sidebar */}
         {hasContent ? (
@@ -255,9 +255,9 @@ export default function App() {
 
         {/* Center */}
         <main className="flex-1 overflow-y-auto">
-          <div className="w-full max-w-2xl mx-auto px-6 py-10 flex flex-col gap-6">
+          <div className={`w-full mx-auto px-6 flex flex-col gap-6 ${hasContent ? 'max-w-3xl py-8' : 'max-w-4xl'}`}>
 
-            <QueryInput />
+            {hasContent && <QueryInput />}
 
             {rootAnswer && <BreadcrumbTrail />}
 
@@ -279,7 +279,8 @@ export default function App() {
 
             {/* Landing state */}
             {!hasContent && (
-              <div className="flex flex-col items-center text-center gap-8 py-12 animate-fade-up relative overflow-hidden min-h-[80vh] justify-center">
+              <div className="flex flex-col items-center text-center gap-8 animate-fade-up relative overflow-hidden justify-center"
+                style={{ minHeight: 'calc(100vh - 73px)' }}>
 
                 {/* Aurora blobs */}
                 <div className="blob blob-1" />
@@ -351,6 +352,11 @@ export default function App() {
                       RUE breaks every answer into clickable concepts you explore
                       recursively — going as deep as you need to truly understand.
                     </p>
+                  </div>
+
+                  {/* Search bar centered in hero */}
+                  <div className="w-full max-w-2xl mx-auto mt-4">
+                    <QueryInput />
                   </div>
 
                   {/* Feature pills */}
