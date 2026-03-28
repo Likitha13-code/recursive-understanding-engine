@@ -6,8 +6,7 @@ from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from db import get_db
 from dotenv import load_dotenv
-import uuid, os, smtplib
-from email.mime.text import MIMEText
+import uuid, os, requests
 
 load_dotenv()
 
@@ -91,25 +90,28 @@ class ResetRequest(BaseModel):
     new_password: str
 
 def send_reset_email(to_email: str, reset_link: str):
-    gmail_user = os.getenv("GMAIL_USER")
-    gmail_pass = os.getenv("GMAIL_APP_PASSWORD")
-    print(f"[email] GMAIL_USER={'set' if gmail_user else 'NOT SET'}, GMAIL_APP_PASSWORD={'set' if gmail_pass else 'NOT SET'}")
-    if not gmail_user or not gmail_pass:
-        print("[email] Skipping — credentials not configured")
+    api_key = os.getenv("RESEND_API_KEY")
+    if not api_key:
+        print("[email] Skipping — RESEND_API_KEY not set")
         return
-    msg = MIMEText(
-        f"Hi,\n\nClick the link below to reset your RUE password:\n\n{reset_link}\n\n"
-        f"This link expires in 1 hour. If you didn't request this, ignore this email.\n\n— RUE Team"
-    )
-    msg["Subject"] = "Reset your RUE password"
-    msg["From"] = gmail_user
-    msg["To"] = to_email
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as s:
-            s.login(gmail_user, gmail_pass)
-            s.sendmail(gmail_user, to_email, msg.as_string())
+        resp = requests.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "from": "RUE <onboarding@resend.dev>",
+                "to": [to_email],
+                "subject": "Reset your RUE password",
+                "text": (
+                    f"Hi,\n\nClick the link below to reset your RUE password:\n\n{reset_link}\n\n"
+                    f"This link expires in 1 hour. If you didn't request this, ignore this email.\n\n— RUE Team"
+                ),
+            },
+            timeout=10,
+        )
+        print(f"[email] Resend response: {resp.status_code} {resp.text}")
     except Exception as e:
-        print(f"Email send error: {e}")
+        print(f"[email] Error: {e}")
 
 @router.post("/auth/forgot-password")
 def forgot_password(body: ForgotRequest, background_tasks: BackgroundTasks):
