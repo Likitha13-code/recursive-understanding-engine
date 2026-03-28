@@ -1,0 +1,361 @@
+{
+  "name": "Recursive Understanding Engine — Full Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rue-ask",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-ask",
+      "name": "Webhook: Receive Question",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "rue-ask-webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.RUE_BACKEND_URL }}/api/ask",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "question", "value": "={{ $json.body.question }}" }
+          ]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "node-http-ask",
+      "name": "POST /api/ask",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-has-concepts",
+              "leftValue": "={{ $json.concepts.length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-concepts",
+      "name": "Has Concepts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.RUE_BACKEND_URL }}/api/related",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "question", "value": "={{ $('POST /api/ask').item.json.question }}" },
+            { "name": "answer", "value": "={{ $('POST /api/ask').item.json.answer }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-http-related",
+      "name": "POST /api/related",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ answer: $('POST /api/ask').item.json.answer, concepts: $('POST /api/ask').item.json.concepts, related_questions: $json.questions }) }}",
+        "options": {}
+      },
+      "id": "node-respond-success",
+      "name": "Respond: Answer + Concepts + Related",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ answer: $('POST /api/ask').item.json.answer, concepts: [], related_questions: [] }) }}",
+        "options": {}
+      },
+      "id": "node-respond-no-concepts",
+      "name": "Respond: Answer Only",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [960, 420]
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rue-concept",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-concept",
+      "name": "Webhook: Concept Click",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 600],
+      "webhookId": "rue-concept-webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.RUE_BACKEND_URL }}/api/concept",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "term", "value": "={{ $json.body.term }}" },
+            { "name": "parent_answer", "value": "={{ $json.body.parent_answer }}" },
+            { "name": "exploration_path", "value": "={{ $json.body.exploration_path }}" }
+          ]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "node-http-concept",
+      "name": "POST /api/concept",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "node-respond-concept",
+      "name": "Respond: Concept Explanation",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 600]
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rue-followup",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-followup",
+      "name": "Webhook: Follow-up Question",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 860],
+      "webhookId": "rue-followup-webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.RUE_BACKEND_URL }}/api/followup",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "question", "value": "={{ $json.body.question }}" },
+            { "name": "context", "value": "={{ $json.body.context }}" },
+            { "name": "root_query", "value": "={{ $json.body.root_query }}" }
+          ]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "node-http-followup",
+      "name": "POST /api/followup",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 860]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "node-respond-followup",
+      "name": "Respond: Follow-up Answer",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 860]
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rue-forgot-password",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-forgot",
+      "name": "Webhook: Forgot Password",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 1120],
+      "webhookId": "rue-forgot-webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.RUE_BACKEND_URL }}/api/auth/forgot-password",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "email", "value": "={{ $json.body.email }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-http-forgot",
+      "name": "POST /api/auth/forgot-password",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 1120]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@yourdomain.com",
+        "toEmail": "={{ $('Webhook: Forgot Password').item.json.body.email }}",
+        "subject": "Reset your RUE password",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#0f0f1a;color:#e2e8f0;border-radius:12px\">\n  <h2 style=\"color:#a78bfa\">Recursive Understanding Engine</h2>\n  <p>You requested a password reset. Click the button below:</p>\n  <a href=\"{{ $env.RUE_FRONTEND_URL }}?token={{ $json.token }}\" style=\"display:inline-block;margin:16px 0;padding:12px 28px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;border-radius:8px;text-decoration:none;font-weight:600\">Reset Password</a>\n  <p style=\"color:#94a3b8;font-size:12px\">This link expires in 1 hour. If you didn't request this, ignore this email.</p>\n</div>",
+        "options": {}
+      },
+      "id": "node-send-reset-email",
+      "name": "Send Reset Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [720, 1120]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"message\": \"Password reset email sent\" }",
+        "options": {}
+      },
+      "id": "node-respond-forgot",
+      "name": "Respond: Email Sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [960, 1120]
+    }
+  ],
+
+  "connections": {
+    "Webhook: Receive Question": {
+      "main": [
+        [{ "node": "POST /api/ask", "type": "main", "index": 0 }]
+      ]
+    },
+    "POST /api/ask": {
+      "main": [
+        [{ "node": "Has Concepts?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Has Concepts?": {
+      "main": [
+        [{ "node": "POST /api/related", "type": "main", "index": 0 }],
+        [{ "node": "Respond: Answer Only", "type": "main", "index": 0 }]
+      ]
+    },
+    "POST /api/related": {
+      "main": [
+        [{ "node": "Respond: Answer + Concepts + Related", "type": "main", "index": 0 }]
+      ]
+    },
+    "Webhook: Concept Click": {
+      "main": [
+        [{ "node": "POST /api/concept", "type": "main", "index": 0 }]
+      ]
+    },
+    "POST /api/concept": {
+      "main": [
+        [{ "node": "Respond: Concept Explanation", "type": "main", "index": 0 }]
+      ]
+    },
+    "Webhook: Follow-up Question": {
+      "main": [
+        [{ "node": "POST /api/followup", "type": "main", "index": 0 }]
+      ]
+    },
+    "POST /api/followup": {
+      "main": [
+        [{ "node": "Respond: Follow-up Answer", "type": "main", "index": 0 }]
+      ]
+    },
+    "Webhook: Forgot Password": {
+      "main": [
+        [{ "node": "POST /api/auth/forgot-password", "type": "main", "index": 0 }]
+      ]
+    },
+    "POST /api/auth/forgot-password": {
+      "main": [
+        [{ "node": "Send Reset Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Reset Email": {
+      "main": [
+        [{ "node": "Respond: Email Sent", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "rue-n8n-workflow"
+  },
+  "pinData": {},
+  "versionId": "1.0.0",
+  "id": "rue-workflow-001",
+  "tags": [
+    { "createdAt": "2026-03-28T00:00:00.000Z", "updatedAt": "2026-03-28T00:00:00.000Z", "id": "tag-1", "name": "RUE" },
+    { "createdAt": "2026-03-28T00:00:00.000Z", "updatedAt": "2026-03-28T00:00:00.000Z", "id": "tag-2", "name": "AI" }
+  ]
+}
