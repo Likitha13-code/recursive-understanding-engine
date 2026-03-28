@@ -104,6 +104,17 @@ def generate_simpler_explanation(term: str, current_explanation: str, exploratio
     )
 
 
+def generate_followup_answer(question: str, context: str, root_query: str) -> str:
+    return _chat(
+        f"A user is studying the topic: '{root_query}'.\n\n"
+        f"They are currently reading this explanation:\n\"{context[:1500]}\"\n\n"
+        f"They now ask a follow-up question: '{question}'\n\n"
+        f"Answer their follow-up question in 2-4 sentences, staying within the context of the topic. "
+        f"Be direct and clear. Do not repeat the explanation they already read.",
+        max_tokens=400,
+    )
+
+
 def extract_concepts(text: str) -> list[dict]:
     raw = _chat(
         f"From the following explanation, identify exactly 4 to 6 terms that:\n"

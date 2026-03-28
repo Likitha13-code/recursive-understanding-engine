@@ -62,10 +62,12 @@ function SpeakButton({ text }) {
 }
 
 export default function AnswerPanel() {
-  const { rootAnswer, stack, isLoadingAnswer, error, markUnderstood } = useExplorationStore()
+  const { rootAnswer, stack, isLoadingAnswer, error, markUnderstood, followUpsMap, addFollowUp, rootQuery } = useExplorationStore()
   const [simplifying, setSimplifying] = useState(false)
   const [simplifiedData, setSimplifiedData] = useState(null) // { explanation, concepts }
   const [exploreFeedback, setExploreFeedback] = useState(false)
+  const [followUpInput, setFollowUpInput] = useState('')
+  const [followUpLoading, setFollowUpLoading] = useState(false)
 
   if (isLoadingAnswer) return <SkeletonLoader />
   if (error) return (
@@ -113,6 +115,26 @@ export default function AnswerPanel() {
     setSimplifiedData(null)
     setExploreFeedback(true)
     setTimeout(() => setExploreFeedback(false), 2000)
+  }
+
+  const contextKey = current ? current.term : (rootQuery || 'root')
+  const followUps = followUpsMap[contextKey] || []
+
+  const handleFollowUp = async (e) => {
+    e.preventDefault()
+    const q = followUpInput.trim()
+    if (!q || followUpLoading) return
+    setFollowUpLoading(true)
+    setFollowUpInput('')
+    try {
+      const { data } = await api.post('/api/followup', {
+        question: q,
+        context: base.text,
+        root_query: rootQuery,
+      })
+      addFollowUp(contextKey, { question: q, answer: data.answer, concepts: data.concepts })
+    } catch { /* silently fail */ }
+    finally { setFollowUpLoading(false) }
   }
 
   return (
@@ -229,6 +251,49 @@ export default function AnswerPanel() {
 
         </div>
       </div>
+
+      {/* ── Follow-up chat thread ── */}
+      {followUps.length > 0 && (
+        <div className="flex flex-col gap-3 mt-3">
+          {followUps.map((fu, i) => (
+            <div key={i} className="flex flex-col gap-2 animate-fade-up">
+              {/* User question bubble */}
+              <div className="flex justify-end">
+                <div className="max-w-[85%] text-sm px-4 py-2.5 rounded-2xl rounded-br-sm"
+                  style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.25)', color: 'var(--text)' }}>
+                  {fu.question}
+                </div>
+              </div>
+              {/* AI answer bubble */}
+              <div className="glass rounded-2xl rounded-tl-sm px-5 py-4">
+                <AnswerWithTerms text={fu.answer} concepts={fu.concepts} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Follow-up input ── */}
+      <form onSubmit={handleFollowUp} className="mt-3 flex gap-2 items-center">
+        <input
+          type="text"
+          value={followUpInput}
+          onChange={e => setFollowUpInput(e.target.value)}
+          placeholder="Ask a follow-up question…"
+          className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500/50"
+          style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text)' }}
+        />
+        <button type="submit" disabled={!followUpInput.trim() || followUpLoading}
+          className="shrink-0 flex items-center justify-center w-10 h-10 rounded-xl
+            bg-violet-600 hover:bg-violet-500 disabled:opacity-40 transition-all">
+          {followUpLoading
+            ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            : <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+          }
+        </button>
+      </form>
     </div>
   )
 }

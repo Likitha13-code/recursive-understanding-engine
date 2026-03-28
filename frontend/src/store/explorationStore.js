@@ -47,6 +47,7 @@ const emptyState = {
   allConceptTerms: new Set(),
   understoodTerms: new Set(),
   graphNodes:      [],
+  followUpsMap:    {}, // { [contextKey]: [{question, answer, concepts}] }
 }
 
 const useExplorationStore = create((set, get) => ({
@@ -175,6 +176,15 @@ const useExplorationStore = create((set, get) => ({
         isLoadingAnswer: false, isLoadingConcept: false, error: null,
       })
     } catch {}
+  },
+
+  addFollowUp: (contextKey, entry) => {
+    set((state) => ({
+      followUpsMap: {
+        ...state.followUpsMap,
+        [contextKey]: [...(state.followUpsMap[contextKey] || []), entry],
+      },
+    }))
   },
 
   getProgress: () => {

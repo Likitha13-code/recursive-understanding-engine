@@ -48,3 +48,14 @@ class SimplifyRequest(BaseModel):
 class SimplifyResponse(BaseModel):
     explanation: str
     concepts: List[ConceptTerm]
+
+
+class FollowUpRequest(BaseModel):
+    question: str
+    context: str          # the current answer/explanation text
+    root_query: str       # the original root question for broad context
+
+
+class FollowUpResponse(BaseModel):
+    answer: str
+    concepts: List[ConceptTerm]
