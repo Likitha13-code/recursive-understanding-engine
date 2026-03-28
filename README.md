@@ -257,6 +257,78 @@ VITE_API_URL=https://your-backend.onrender.com
 
 ---
 
+## Recursive Design Logic
+
+```json
+Session State:
+{
+  "root_query": "What is LIME in AI?",
+  "exploration_stack": [
+    {
+      "level": 0,
+      "term": "LIME",
+      "answer": "LIME is an explainable AI technique...",
+      "terms": ["Explainable AI", "Model-agnostic", "Predictions", "Locally"]
+    },
+    {
+      "level": 1,
+      "term": "Model-agnostic",
+      "answer": "Model-agnostic means the method works independently...",
+      "terms": ["Machine learning model", "Internal structure"]
+    },
+    {
+      "level": 2,
+      "term": "Internal structure",
+      "answer": "Internal structure refers to...",
+      "terms": ["Weights", "Layers", "Neural network"]
+    }
+  ]
+}
+```
+
+- Stack grows on click, shrinks on back navigation
+- Each node is independently explorable
+- Max depth: 5 levels (configurable)
+
+---
+
+## Evaluation Criteria Mapping
+
+| Criteria                          | How We Address It                                                   |
+|-----------------------------------|---------------------------------------------------------------------|
+| **Depth of idea implementation**  | Full recursive stack with session state, not just 1-level deep      |
+| **Quality of extracted terms**    | LLM-based semantic extraction with difficulty scoring               |
+| **Multi-level exploration**       | Unlimited depth with breadcrumb + tree + graph visualization        |
+| **Smoothness and usability**      | Clean React UI, animated transitions, voice input, file upload      |
+| **Simplicity of explanations**    | Scoped prompts + "Explain Simpler" button for any concept           |
+| **User understanding tracking**   | Got it/Explore Further checkpoints + comprehension progress bar     |
+| **Session continuity**            | Login + cloud sync, session restore from recent searches            |
+
+---
+
+## Build Steps
+
+| Step | Task                                                        |
+|------|-------------------------------------------------------------|
+| 1    | Backend setup — FastAPI + Groq API                          |
+| 2    | Concept extraction engine (two-prompt pipeline)             |
+| 3    | Frontend skeleton — React + TailwindCSS                     |
+| 4    | Answer panel with highlighted clickable terms               |
+| 5    | Recursive exploration (click → sub-explain → new terms)     |
+| 6    | Breadcrumb trail + knowledge tree sidebar                   |
+| 7    | Session state management (Zustand)                          |
+| 8    | Progress tracker, Export, Share, Related questions          |
+| 9    | Dark/Light mode with full CSS variable theming              |
+| 10   | Concept difficulty badges (B/I/A) + Got it / Explore Further|
+| 11   | Explain Simpler button + Show Original toggle               |
+| 12   | Session persistence (localStorage per query)                |
+| 13   | Concept Graph View (SVG tree visualization)                 |
+| 14   | Voice input (auto-submit) + File attachment flow            |
+| 15   | User login/register + JWT auth + PostgreSQL                 |
+| 16   | Cloud session sync + DB-backed share links                  |
+
+---
+
 ## Good vs Bad Implementation
 
 | Bad Implementation                        | Our Implementation                             |
