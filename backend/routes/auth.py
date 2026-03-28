@@ -1,13 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
-from bson import ObjectId
 from db import get_db
 from dotenv import load_dotenv
-import os
+import uuid, os
 
 load_dotenv()
 
@@ -18,7 +17,6 @@ pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET = os.getenv("JWT_SECRET", "rue-secret")
 EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "720"))
 
-# ── Models ────────────────────────────────────────────
 class AuthRequest(BaseModel):
     email: str
     password: str
@@ -28,7 +26,6 @@ class AuthResponse(BaseModel):
     user_id: str
     email: str
 
-# ── Helpers ───────────────────────────────────────────
 def make_token(user_id: str, email: str) -> str:
     payload = {
         "sub": user_id,
@@ -56,28 +53,29 @@ def get_optional_user(creds: HTTPAuthorizationCredentials = Depends(bearer)):
     except Exception:
         return None
 
-# ── Routes ────────────────────────────────────────────
 @router.post("/auth/register", response_model=AuthResponse)
 def register(body: AuthRequest):
-    db = get_db()
-    if db.users.find_one({"email": body.email}):
+    conn = get_db(); cur = conn.cursor()
+    cur.execute("SELECT id FROM users WHERE email = %s", (body.email,))
+    if cur.fetchone():
+        cur.close(); conn.close()
         raise HTTPException(status_code=409, detail="Email already registered")
-    result = db.users.insert_one({
-        "email": body.email,
-        "password_hash": pwd.hash(body.password),
-        "created_at": datetime.utcnow(),
-    })
-    user_id = str(result.inserted_id)
+    user_id = str(uuid.uuid4())
+    cur.execute(
+        "INSERT INTO users (id, email, password_hash, created_at) VALUES (%s, %s, %s, %s)",
+        (user_id, body.email, pwd.hash(body.password), datetime.utcnow().isoformat())
+    )
+    conn.commit(); cur.close(); conn.close()
     return AuthResponse(token=make_token(user_id, body.email), user_id=user_id, email=body.email)
 
 @router.post("/auth/login", response_model=AuthResponse)
 def login(body: AuthRequest):
-    db = get_db()
-    user = db.users.find_one({"email": body.email})
+    conn = get_db(); cur = conn.cursor()
+    cur.execute("SELECT * FROM users WHERE email = %s", (body.email,))
+    user = cur.fetchone(); cur.close(); conn.close()
     if not user or not pwd.verify(body.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    user_id = str(user["_id"])
-    return AuthResponse(token=make_token(user_id, body.email), user_id=user_id, email=body.email)
+    return AuthResponse(token=make_token(user["id"], body.email), user_id=user["id"], email=body.email)
 
 @router.get("/auth/me")
 def me(current_user: dict = Depends(get_current_user)):

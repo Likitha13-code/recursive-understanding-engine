@@ -8,7 +8,13 @@ from routes.simplify import router as simplify_router
 from routes.auth import router as auth_router
 from routes.sessions import router as sessions_router
 
+from db import init_db
+
 app = FastAPI(title="Recursive Understanding Engine", version="1.0.0")
+
+@app.on_event("startup")
+def startup():
+    init_db()
 
 app.add_middleware(
     CORSMiddleware,
