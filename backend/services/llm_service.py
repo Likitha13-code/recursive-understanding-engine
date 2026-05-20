@@ -48,9 +48,9 @@ def _parse_combined_json(raw: str) -> dict:
         concepts = data.get("concepts", [])
         clean_concepts = [
             {
-                "term": c.get("term", ""),
-                "reason": c.get("reason", ""),
-                "difficulty": c.get("difficulty", "intermediate"),
+                "term": str(c.get("term", "")),
+                "reason": str(c.get("reason", "")),
+                "difficulty": str(c.get("difficulty", "intermediate")),
             }
             for c in concepts
             if isinstance(c, dict) and "term" in c and "reason" in c
@@ -88,7 +88,7 @@ async def generate_answer_with_context_combined(question: str, context: str) -> 
         f"Based on this document, answer the following question clearly in 3-5 sentences:\n"
         f"Question: {question}\n\n"
         f"THEN, identify exactly 4 to 6 technical or domain-specific terms from your answer.\n"
-        f"Return ONLY a valid JSON object with keys 'answer' and 'concepts' (a list of objects with 'term', 'reason', 'difficulty')."
+        f"Return ONLY a valid JSON object with keys 'answer' and 'concepts' (a list of objects with 'term', 'reason', 'difficulty' (beginner|intermediate|advanced))."
     )
     raw = await _chat_async(prompt, max_tokens=1000)
     return _parse_combined_json(raw)
@@ -109,7 +109,7 @@ async def analyze_image_combined(question: str, image_base64: str, mime_type: st
                     "type": "text",
                     "text": f"{question or 'Describe this image in detail and explain what it shows.'}\n\n"
                             f"THEN, identify 4 to 6 technical concepts from your explanation.\n"
-                            f"Return ONLY a valid JSON object with 'answer' and 'concepts' (a list of objects with 'term', 'reason', 'difficulty').",
+                            f"Return ONLY a valid JSON object with 'answer' and 'concepts' (a list of objects with 'term', 'reason', 'difficulty' (beginner|intermediate|advanced)).",
                 },
             ],
         }],
@@ -129,7 +129,7 @@ async def generate_concept_explanation_combined(term: str, parent_answer: str, e
         f"Avoid circular explanations. Use plain language. "
         f"Do not reuse the exact words from the original explanation.\n\n"
         f"THEN, identify 4 to 6 new technical concepts from your explanation.\n"
-        f"Return ONLY a valid JSON object with 'answer' and 'concepts' (a list of objects with 'term', 'reason', 'difficulty')."
+        f"Return ONLY a valid JSON object with 'answer' and 'concepts' (a list of objects with 'term', 'reason', 'difficulty' (beginner|intermediate|advanced))."
     )
     raw = await _chat_async(prompt, max_tokens=1000)
     return _parse_combined_json(raw)
@@ -142,7 +142,7 @@ async def generate_simpler_explanation_combined(term: str, current_explanation: 
         f"Re-explain '{term}' in even simpler terms. Use an analogy or everyday example. "
         f"Write 2-3 sentences maximum. Avoid all jargon. Imagine explaining to a 12-year-old.\n\n"
         f"THEN, identify 2 to 4 technical concepts from your explanation (if any).\n"
-        f"Return ONLY a valid JSON object with 'answer' and 'concepts' (a list of objects with 'term', 'reason', 'difficulty')."
+        f"Return ONLY a valid JSON object with 'answer' and 'concepts' (a list of objects with 'term', 'reason', 'difficulty' (beginner|intermediate|advanced))."
     )
     raw = await _chat_async(prompt, max_tokens=1000)
     return _parse_combined_json(raw)
@@ -155,7 +155,7 @@ async def generate_followup_answer_combined(question: str, context: str, root_qu
         f"They now ask a follow-up question: '{question}'\n\n"
         f"Answer their follow-up question in 2-4 sentences. Be direct and clear.\n\n"
         f"THEN, identify 4 to 6 technical concepts from your answer.\n"
-        f"Return ONLY a valid JSON object with 'answer' and 'concepts' (a list of objects with 'term', 'reason', 'difficulty')."
+        f"Return ONLY a valid JSON object with 'answer' and 'concepts' (a list of objects with 'term', 'reason', 'difficulty' (beginner|intermediate|advanced))."
     )
     raw = await _chat_async(prompt, max_tokens=1000)
     return _parse_combined_json(raw)
