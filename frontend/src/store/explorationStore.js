@@ -66,8 +66,11 @@ const useExplorationStore = create((set, get) => ({
 
   setRootAnswer: (answer) => {
     const terms = new Set(answer.concepts?.map((c) => c.term) || [])
-    const rootNode = { id: 'root', label: answer.answer?.slice(0, 40) + '…', depth: 0, parentId: null }
-    const newState = { rootAnswer: answer, allConceptTerms: terms, graphNodes: [rootNode] }
+    const rootNode = { id: 'root', label: answer.answer?.slice(0, 40) + '…', depth: 0, parentId: null, explanation: answer.answer, isUnexplored: false }
+    const childNodes = (answer.concepts || []).map(c => ({
+      id: c.term, label: c.term, depth: 1, parentId: 'root', explanation: c.reason, difficulty: c.difficulty, isUnexplored: true
+    }))
+    const newState = { rootAnswer: answer, allConceptTerms: terms, graphNodes: [rootNode, ...childNodes] }
     set(newState)
     const full = { ...get(), ...newState }
     saveQuerySession(full.rootQuery, full)
@@ -138,8 +141,16 @@ const useExplorationStore = create((set, get) => ({
     set((state) => {
       const newAll = new Set([...state.allConceptTerms, ...node.concepts.map((c) => c.term)])
       const parentId = state.stack.length > 0 ? state.stack[state.stack.length - 1].term : 'root'
-      const graphNode = { id: node.term, label: node.term, depth: node.depth, parentId }
-      const newGraphNodes = [...state.graphNodes.filter((n) => n.id !== node.term), graphNode]
+      const graphNode = { id: node.term, label: node.term, depth: node.depth, parentId, explanation: node.explanation, isUnexplored: false }
+      const childNodes = (node.concepts || []).map(c => ({
+        id: c.term, label: c.term, depth: node.depth + 1, parentId: node.term, explanation: c.reason, difficulty: c.difficulty, isUnexplored: true
+      }))
+      const existingIds = new Set(state.graphNodes.map(n => n.id))
+      const newGraphNodes = [
+        ...state.graphNodes.filter((n) => n.id !== node.term),
+        graphNode,
+        ...childNodes.filter(c => !existingIds.has(c.id) && c.id !== node.term)
+      ]
       const newState = {
         stack: [...state.stack, node],
         exploredTerms: new Set([...state.exploredTerms, node.term]),
@@ -160,6 +171,21 @@ const useExplorationStore = create((set, get) => ({
 
   reset: () => {
     set({ ...emptyState, isLoadingAnswer: false, isLoadingConcept: false, error: null })
+  },
+
+  exploreConcept: async (term, parentAnswer) => {
+    const state = get()
+    if (state.isLoadingConcept) return
+    const path = state.stack.map((n) => n.term)
+    set({ isLoadingConcept: true, error: null })
+    try {
+      const { data } = await api.post('/api/explore', { term, parent_answer: parentAnswer, exploration_path: path })
+      get().pushNode({ term: data.term, explanation: data.explanation, concepts: data.concepts, depth: data.depth_level })
+    } catch {
+      set({ error: `Could not load explanation for "${term}".` })
+    } finally {
+      set({ isLoadingConcept: false })
+    }
   },
 
   // Restore a full session from a share link (URL hash)

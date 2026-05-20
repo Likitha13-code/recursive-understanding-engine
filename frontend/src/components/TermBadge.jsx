@@ -1,4 +1,3 @@
-import api from '../api'
 import useExplorationStore from '../store/explorationStore'
 
 const DIFFICULTY_STYLE = {
@@ -8,20 +7,14 @@ const DIFFICULTY_STYLE = {
 }
 
 export default function TermBadge({ term, parentAnswer, difficulty = 'intermediate' }) {
-  const { stack, exploredTerms, understoodTerms, pushNode, setLoadingConcept, setError, isLoadingConcept } = useExplorationStore()
+  const { exploredTerms, understoodTerms, exploreConcept, isLoadingConcept } = useExplorationStore()
   const isExplored  = exploredTerms.has(term)
   const isUnderstood = understoodTerms.has(term)
   const style = DIFFICULTY_STYLE[difficulty] || DIFFICULTY_STYLE.intermediate
 
-  const handleClick = async () => {
+  const handleClick = () => {
     if (isLoadingConcept) return
-    const path = stack.map((n) => n.term)
-    setLoadingConcept(true); setError(null)
-    try {
-      const { data } = await api.post('/api/explore', { term, parent_answer: parentAnswer, exploration_path: path })
-      pushNode({ term: data.term, explanation: data.explanation, concepts: data.concepts, depth: data.depth_level })
-    } catch { setError(`Could not load explanation for "${term}".`) }
-    finally { setLoadingConcept(false) }
+    exploreConcept(term, parentAnswer)
   }
 
   return (
