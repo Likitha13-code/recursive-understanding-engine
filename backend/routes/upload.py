@@ -2,7 +2,7 @@ import base64
 import io
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from models.schemas import AnswerResponse, ConceptTerm
-from services.llm_service import generate_answer_with_context, analyze_image, extract_concepts
+from services.llm_service import generate_answer_with_context_combined, analyze_image_combined
 
 router = APIRouter()
 
@@ -26,7 +26,7 @@ async def upload_file(
     # ── Image ──────────────────────────────────────────────
     if file.content_type.startswith("image/"):
         image_b64 = base64.b64encode(contents).decode("utf-8")
-        answer = analyze_image(question, image_b64, file.content_type)
+        data = await analyze_image_combined(question, image_b64, file.content_type)
 
     # ── PDF ────────────────────────────────────────────────
     elif file.content_type == "application/pdf":
@@ -36,15 +36,14 @@ async def upload_file(
             text = "\n".join(page.extract_text() or "" for page in reader.pages)
             if not text.strip():
                 raise HTTPException(status_code=400, detail="Could not extract text from PDF.")
-            answer = generate_answer_with_context(question, text)
+            data = await generate_answer_with_context_combined(question, text)
         except ImportError:
             raise HTTPException(status_code=500, detail="PyPDF2 not installed.")
 
     # ── Plain text ─────────────────────────────────────────
     else:
         text = contents.decode("utf-8", errors="ignore")
-        answer = generate_answer_with_context(question, text)
+        data = await generate_answer_with_context_combined(question, text)
 
-    raw_concepts = extract_concepts(answer)
-    concepts = [ConceptTerm(**c) for c in raw_concepts]
-    return AnswerResponse(answer=answer, concepts=concepts)
+    concepts = [ConceptTerm(**c) for c in data["concepts"]]
+    return AnswerResponse(answer=data["answer"], concepts=concepts)

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from models.schemas import ConceptRequest, ConceptResponse, ConceptTerm
-from services.llm_service import generate_concept_explanation, extract_concepts
+from services.llm_service import generate_concept_explanation_combined
 
 router = APIRouter()
 
@@ -12,18 +12,17 @@ async def explore_concept(request: ConceptRequest):
 
     depth = len(request.exploration_path) if request.exploration_path else 0
 
-    explanation = generate_concept_explanation(
+    data = await generate_concept_explanation_combined(
         term=request.term,
         parent_answer=request.parent_answer,
         exploration_path=request.exploration_path or [request.term],
     )
 
-    raw_concepts = extract_concepts(explanation)
-    concepts = [ConceptTerm(**c) for c in raw_concepts]
+    concepts = [ConceptTerm(**c) for c in data["concepts"]]
 
     return ConceptResponse(
         term=request.term,
-        explanation=explanation,
+        explanation=data["answer"],
         concepts=concepts,
         depth_level=depth + 1,
     )
