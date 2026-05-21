@@ -6,13 +6,17 @@ const DIFFICULTY_STYLE = {
   advanced:     { bg: 'rgba(239,68,68,0.10)',   border: 'rgba(239,68,68,0.35)',   text: '#dc2626', label: 'A', glow: '0 0 14px 3px rgba(239,68,68,0.35)'   },
 }
 
-export default function TermBadge({ term, parentAnswer, difficulty = 'intermediate' }) {
+export default function TermBadge({ term, parentAnswer, difficulty = 'intermediate', onClick }) {
   const { exploredTerms, understoodTerms, exploreConcept, isLoadingConcept } = useExplorationStore()
   const isExplored  = exploredTerms.has(term)
   const isUnderstood = understoodTerms.has(term)
   const style = DIFFICULTY_STYLE[difficulty] || DIFFICULTY_STYLE.intermediate
 
-  const handleClick = () => {
+  const handleClick = (e) => {
+    if (onClick) {
+      onClick(term, parentAnswer)
+      return
+    }
     if (isLoadingConcept) return
     exploreConcept(term, parentAnswer)
   }

@@ -38,7 +38,7 @@ function buildTree(nodes) {
   return { tree: positioned, width: maxX + 80, height: maxY + 80 }
 }
 
-function GraphAnswerWithTerms({ text, concepts, className }) {
+function GraphAnswerWithTerms({ text, concepts, className, onTermClick }) {
   if (!text) return null
   if (!concepts || concepts.length === 0)
     return <span className={className}>{text}</span>
@@ -55,7 +55,7 @@ function GraphAnswerWithTerms({ text, concepts, className }) {
       {parts.map((part, i) => {
         const c = conceptMap[part.toLowerCase()]
         return c
-          ? <TermBadge key={i} term={c.term} parentAnswer={text} difficulty={c.difficulty} />
+          ? <TermBadge key={i} term={c.term} parentAnswer={text} difficulty={c.difficulty} onClick={onTermClick} />
           : <span key={i}>{part}</span>
       })}
     </span>
@@ -97,6 +97,19 @@ export default function ConceptGraph({ onClose }) {
 
   const handleNodeClick = (node) => {
     setSelectedNode(node)
+  }
+
+  const handleTermBadgeClick = (term, parentAnswer) => {
+    if (isLoadingConcept) return;
+    let node = graphNodes.find(n => n.id === term);
+    if (node) {
+      setSelectedNode(node);
+      if (node.isUnexplored) {
+        exploreConcept(term, parentAnswer);
+      }
+    } else {
+      exploreConcept(term, parentAnswer);
+    }
   }
 
   const triggerDeepSearch = () => {
@@ -361,6 +374,7 @@ export default function ConceptGraph({ onClose }) {
                     <GraphAnswerWithTerms 
                       text={selectedNode.explanation} 
                       concepts={graphNodes.filter(n => n.parentId === selectedNode.id).map(n => ({ term: n.label, difficulty: n.difficulty }))} 
+                      onTermClick={handleTermBadgeClick}
                     />
                   )}
                 </p>
@@ -417,7 +431,7 @@ export default function ConceptGraph({ onClose }) {
                       ) : (
                         <div className={`self-start max-w-[95%] text-[13.5px] leading-relaxed px-5 py-4 rounded-2xl rounded-tl-sm shadow-lg text-slate-200 border
                           ${fu.isError ? 'bg-red-500/10 border-red-500/20 text-red-200' : 'bg-slate-800/80 border-slate-700'}`}>
-                          <GraphAnswerWithTerms text={fu.answer} concepts={fu.concepts} />
+                          <GraphAnswerWithTerms text={fu.answer} concepts={fu.concepts} onTermClick={handleTermBadgeClick} />
                         </div>
                       )}
                     </div>
