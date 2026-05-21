@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
 import useExplorationStore from '../store/explorationStore'
 import api from '../api'
+import TermBadge from './TermBadge'
 
 const DEPTH_COLORS = ['#c084fc', '#60a5fa', '#34d399', '#fbbf24', '#f87171']
 const NODE_W = 160
@@ -35,6 +36,30 @@ function buildTree(nodes) {
 
   layout('root', 40, 40)
   return { tree: positioned, width: maxX + 80, height: maxY + 80 }
+}
+
+function GraphAnswerWithTerms({ text, concepts, className }) {
+  if (!text) return null
+  if (!concepts || concepts.length === 0)
+    return <span className={className}>{text}</span>
+
+  const conceptMap = Object.fromEntries(concepts.map((c) => [c.term.toLowerCase(), c]))
+  const escaped = concepts.map((c) => c.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  if (escaped.length === 0) return <span className={className}>{text}</span>
+  
+  const regex = new RegExp(`(${escaped.join('|')})`, 'gi')
+  const parts = text.split(regex)
+
+  return (
+    <span className={className}>
+      {parts.map((part, i) => {
+        const c = conceptMap[part.toLowerCase()]
+        return c
+          ? <TermBadge key={i} term={c.term} parentAnswer={text} difficulty={c.difficulty} />
+          : <span key={i}>{part}</span>
+      })}
+    </span>
+  )
 }
 
 export default function ConceptGraph({ onClose }) {
@@ -330,7 +355,14 @@ export default function ConceptGraph({ onClose }) {
                 style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/20 rounded-full blur-[40px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
                 <p className="text-[14px] leading-relaxed text-slate-200 relative z-10">
-                  {selectedNode.explanation || (selectedNode.isUnexplored ? "Explanation is not yet loaded for this concept." : "No explanation available.")}
+                  {!selectedNode.explanation ? (
+                    selectedNode.isUnexplored ? "Explanation is not yet loaded for this concept." : "No explanation available."
+                  ) : (
+                    <GraphAnswerWithTerms 
+                      text={selectedNode.explanation} 
+                      concepts={graphNodes.filter(n => n.parentId === selectedNode.id).map(n => ({ term: n.label, difficulty: n.difficulty }))} 
+                    />
+                  )}
                 </p>
                 {isLoadingConcept && selectedNode.isUnexplored && (
                   <div className="mt-4 flex gap-1 relative z-10">
@@ -385,7 +417,7 @@ export default function ConceptGraph({ onClose }) {
                       ) : (
                         <div className={`self-start max-w-[95%] text-[13.5px] leading-relaxed px-5 py-4 rounded-2xl rounded-tl-sm shadow-lg text-slate-200 border
                           ${fu.isError ? 'bg-red-500/10 border-red-500/20 text-red-200' : 'bg-slate-800/80 border-slate-700'}`}>
-                          {fu.answer}
+                          <GraphAnswerWithTerms text={fu.answer} concepts={fu.concepts} />
                         </div>
                       )}
                     </div>
