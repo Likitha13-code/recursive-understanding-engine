@@ -12,7 +12,11 @@ load_dotenv()
 
 router = APIRouter()
 bearer = HTTPBearer(auto_error=False)
-pwd = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
+pwd = CryptContext(
+    schemes=["sha256_crypt"], 
+    deprecated="auto",
+    sha256_crypt__default_rounds=50000
+)
 
 SECRET = os.getenv("JWT_SECRET", "rue-secret")
 EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "720"))
